@@ -10,7 +10,6 @@
 
 import { parseHwpxDocument } from "./hwpx-parser.js"
 import { parseHwp5Document } from "./hwp5-parser.js"
-import { parsePdfDocument } from "./pdf-parser.js"
 
 // ─── 매직바이트 감지 ─────────────────────────────────
 
@@ -83,6 +82,7 @@ async function parseHwp(buffer: ArrayBuffer): Promise<AnnexParseResult> {
 
 async function parsePdf(buffer: ArrayBuffer): Promise<AnnexParseResult> {
   try {
+    const { parsePdfDocument } = await import("./pdf-parser.js")
     const result = await parsePdfDocument(buffer)
     if (result.isImageBased) {
       return {
