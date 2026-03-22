@@ -8,6 +8,8 @@ import type { Server } from "@modelcontextprotocol/sdk/server/index.js"
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js"
 import { InMemoryEventStore } from "@modelcontextprotocol/sdk/examples/shared/inMemoryEventStore.js"
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js"
+import { sessionStore, setSessionApiKey, deleteSession } from "../lib/session-state.js"
+import { VERSION } from "../version.js"
 
 interface SessionTransport {
   transport: StreamableHTTPServerTransport
@@ -30,6 +32,7 @@ export async function startSSEServer(server: Server, port: number) {
       if (session.lastAccess && now - session.lastAccess > SESSION_IDLE_TIMEOUT) {
         try { session.transport.close() } catch { /* ignore */ }
         delete transports[sid]
+        deleteSession(sid)
       }
     }
   }, 5 * 60 * 1000).unref()
@@ -57,7 +60,7 @@ export async function startSSEServer(server: Server, port: number) {
   app.get("/", (req, res) => {
     res.json({
       name: "Korean Law MCP Server",
-      version: "2.1.0",
+      version: VERSION,
       status: "running",
       protocol: "streamable-http",
       endpoints: {
@@ -75,6 +78,17 @@ export async function startSSEServer(server: Server, port: number) {
   app.post("/mcp", async (req, res) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined
 
+    // API 키 추출 (http-server.ts와 동일 패턴)
+    const apiKeyFromHeader =
+      req.headers["apikey"] ||
+      req.headers["law_oc"] ||
+      req.headers["law-oc"] ||
+      (req.headers["LAW_OC"] as string | undefined) ||
+      req.headers["x-api-key"] ||
+      req.headers["authorization"]?.replace(/^Bearer\s+/i, "") ||
+      req.headers["x-law-oc"] ||
+      (req.query?.apiKey as string | undefined)
+
     if (sessionId) {
       console.error(`Received MCP request for session: ${sessionId}`)
     } else {
@@ -88,6 +102,17 @@ export async function startSSEServer(server: Server, port: number) {
         // 기존 세션 재사용 + 접근 시각 갱신
         ;(transports[sessionId] as any).lastAccess = Date.now()
         transport = transports[sessionId].transport
+
+        // API 키 업데이트 (헤더에서 제공된 경우)
+        if (apiKeyFromHeader) {
+          setSessionApiKey(sessionId, apiKeyFromHeader as string)
+        }
+
+        // AsyncLocalStorage로 세션 ID 격리 (동시 요청 안전)
+        await sessionStore.run(sessionId, async () => {
+          await transport.handleRequest(req, res, req.body)
+        })
+        return
       } else if (!sessionId && isInitializeRequest(req.body)) {
         // 새 세션 초기화
         // 세션 수 제한 — transport 생성 전에 체크하여 리소스 누수 방지
@@ -106,6 +131,9 @@ export async function startSSEServer(server: Server, port: number) {
           eventStore,
           onsessioninitialized: (newSessionId) => {
             transports[newSessionId] = { transport, lastAccess: Date.now() } as any
+            if (apiKeyFromHeader) {
+              setSessionApiKey(newSessionId, apiKeyFromHeader as string)
+            }
           }
         })
 
@@ -115,6 +143,7 @@ export async function startSSEServer(server: Server, port: number) {
           if (sid && transports[sid]) {
             console.error(`Transport closed for session ${sid}`)
             delete transports[sid]
+            deleteSession(sid)
           }
         }
 
@@ -134,9 +163,6 @@ export async function startSSEServer(server: Server, port: number) {
         })
         return
       }
-
-      // 기존 세션 요청 처리
-      await transport.handleRequest(req, res, req.body)
     } catch (error) {
       console.error("Error handling MCP POST request:", error)
       if (!res.headersSent) {
@@ -193,6 +219,9 @@ export async function startSSEServer(server: Server, port: number) {
     try {
       const transport = transports[sessionId].transport
       await transport.handleRequest(req, res)
+      delete transports[sessionId]
+      deleteSession(sessionId)
+      console.error(`Session removed: ${sessionId}`)
     } catch (error) {
       console.error("Error handling session termination:", error)
       if (!res.headersSent) {
@@ -215,6 +244,7 @@ export async function startSSEServer(server: Server, port: number) {
       try {
         await transports[sessionId].transport.close()
         delete transports[sessionId]
+        deleteSession(sessionId)
       } catch (error) {
         console.error(`Error closing transport ${sessionId}:`, error)
       }

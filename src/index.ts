@@ -10,6 +10,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { LawApiClient } from "./lib/api-client.js"
 import { registerTools } from "./tool-registry.js"
 import { startHTTPServer } from "./server/http-server.js"
+import { VERSION } from "./version.js"
 
 // API 클라이언트 초기화
 const LAW_OC = process.env.LAW_OC || ""
@@ -19,7 +20,7 @@ const apiClient = new LawApiClient({ apiKey: LAW_OC })
 const server = new Server(
   {
     name: "korean-law",
-    version: "2.1.0",
+    version: VERSION,
   },
   {
     capabilities: {

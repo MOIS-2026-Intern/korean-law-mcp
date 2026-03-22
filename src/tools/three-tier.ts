@@ -6,6 +6,7 @@ import { z } from "zod"
 import type { LawApiClient } from "../lib/api-client.js"
 import { parseThreeTierDelegation } from "../lib/three-tier-parser.js"
 import { cleanHtml } from "../lib/article-parser.js"
+import { truncateResponse } from "../lib/schemas.js"
 
 export const GetThreeTierSchema = z.object({
   mst: z.string().optional().describe("법령일련번호"),
@@ -104,7 +105,7 @@ export async function getThreeTier(
     return {
       content: [{
         type: "text",
-        text: resultText
+        text: truncateResponse(resultText)
       }]
     }
   } catch (error) {

@@ -9,6 +9,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { InMemoryEventStore } from "@modelcontextprotocol/sdk/examples/shared/inMemoryEventStore.js"
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js"
 import { sessionStore, setSessionApiKey, deleteSession } from "../lib/session-state.js"
+import { VERSION } from "../version.js"
 
 // 세션 정보 (Transport + 마지막 접근 시간)
 interface SessionInfo {
@@ -95,7 +96,7 @@ export async function startHTTPServer(server: Server, port: number) {
   app.get("/", (req, res) => {
     res.json({
       name: "Korean Law MCP Server",
-      version: "2.1.0",
+      version: VERSION,
       status: "running",
       transport: "streamable-http",
       endpoints: {

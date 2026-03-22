@@ -21,8 +21,7 @@ import { allTools } from "./tool-registry.js"
 import { routeQuery, explainRoute } from "./lib/query-router.js"
 import { SEARCH_DETAIL_CHAINS } from "./lib/tool-chain-config.js"
 import type { McpTool, ToolResponse } from "./lib/types.js"
-
-const VERSION = "2.0.0"
+import { VERSION } from "./version.js"
 
 // ────────────────────────────────────────
 // CLI Output Formatting
