@@ -581,49 +581,49 @@ export const allTools: McpTool[] = [
   // === 체인 도구 (다단계 자동 실행) ===
   {
     name: "chain_law_system",
-    description: "[⛓체인] 법체계 파악. 법령검색→3단비교→조문→별표 자동 연쇄. 법 구조 질문 시.",
+    description: "[⛓체인] 법령 구조·체계 질문 시 사용. 법령검색→3단비교(법률·시행령·시행규칙)→조문→별표 자동 연쇄. 예: '건축법 체계', '도로교통법 시행령 위임 구조'.",
     schema: chainLawSystemSchema,
     handler: chainLawSystem
   },
   {
     name: "chain_action_basis",
-    description: "[⛓체인] 처분근거. 3단비교→해석례→판례→행정심판 병렬. 허가/처분 질문 시.",
+    description: "[⛓체인] 허가·인가·처분·기준 질문 시 사용. 3단비교→해석례→판례→행정심판 병렬. 예: '건축허가 거부 근거', '영업정지 처분 기준'.",
     schema: chainActionBasisSchema,
     handler: chainActionBasis
   },
   {
     name: "chain_dispute_prep",
-    description: "[⛓체인] 쟁송 대비. 판례→행정심판→도메인 결정례 병렬. 불복/소송 질문 시.",
+    description: "[⛓체인] 불복·소송·심판 질문 시 사용. 판례→행정심판→도메인 결정례 병렬. 예: '과태료 불복 방법', '징계처분 취소소송 판례'.",
     schema: chainDisputePrepSchema,
     handler: chainDisputePrep
   },
   {
     name: "chain_amendment_track",
-    description: "[⛓체인] 개정 추적. 신구대조+조문이력 자동 연쇄. 개정/변경 질문 시.",
+    description: "[⛓체인] 법령 개정·변경·연혁 질문 시 사용. 신구대조+조문이력 자동 연쇄. 예: '민법 최근 개정', '근로기준법 변경 이력'.",
     schema: chainAmendmentTrackSchema,
     handler: chainAmendmentTrack
   },
   {
     name: "chain_ordinance_compare",
-    description: "[⛓체인] 조례 비교. 상위법령→위임체계→전국 조례검색. 자치법규 질문 시.",
+    description: "[⛓체인] 자치법규(조례·규칙) 검색·조회·비교 시 사용. 상위법령→위임체계→전국 조례검색 자동 연쇄. 예: '광진구 복무 조례', '서울시 주차 조례', '주민자치회 조례 비교'.",
     schema: chainOrdinanceCompareSchema,
     handler: chainOrdinanceCompare
   },
   {
     name: "chain_full_research",
-    description: "[⛓체인] 종합 리서치. AI검색→법령→판례→해석례 병렬 수집. 복합 질문 시 1회에 전체 자료 확보.",
+    description: "[⛓체인] 복합 질문·종합 조사 시 사용. AI검색→법령→판례→해석례 병렬 수집. 주제가 넓거나 여러 법령에 걸칠 때. 예: '음주운전 처벌 기준', '부동산 임대차 분쟁'.",
     schema: chainFullResearchSchema,
     handler: chainFullResearch
   },
   {
     name: "chain_procedure_detail",
-    description: "[⛓체인] 절차/비용. 법령→3단비교→별표/서식 자동 연쇄. 신청/절차 질문 시.",
+    description: "[⛓체인] 신청·절차·비용·서식 질문 시 사용. 법령→3단비교→별표/서식 자동 연쇄. 예: '건축허가 절차', '사업자등록 신청 방법'.",
     schema: chainProcedureDetailSchema,
     handler: chainProcedureDetail
   },
   {
     name: "chain_document_review",
-    description: "[⛓체인] 문서 종합검토. 리스크분석→법령검색→판례검색 자동 연쇄. 계약서/약관 검토 시 1회에 리스크+근거법령+관련판례 제공.",
+    description: "[⛓체인] 계약서·약관·협정서 검토 시 사용. 리스크분석→법령검색→판례검색 자동 연쇄. 문서 텍스트를 입력하면 리스크+근거법령+관련판례 제공.",
     schema: chainDocumentReviewSchema,
     handler: chainDocumentReview
   },
@@ -639,13 +639,13 @@ export const allTools: McpTool[] = [
   // === 메타 도구 (lite 프로필용) ===
   {
     name: "discover_tools",
-    description: "[메타] 의도/카테고리로 사용 가능한 전문 도구 검색. 체인 도구로 부족할 때 특수 도구를 찾아 execute_tool로 실행.",
+    description: "[메타] 위 체인/직접 도구로 처리 불가능할 때 사용. 73개 전문 도구(조세심판·관세·헌재·행정심판·공정위·개인정보위·노동위·학칙·조약·영문법령·용어사전 등)를 카테고리별 검색. 결과로 나온 도구명을 execute_tool에 전달.",
     schema: DiscoverToolsSchema,
     handler: discoverTools
   },
   {
     name: "execute_tool",
-    description: "[메타] discover_tools로 찾은 전문 도구를 실행. tool_name과 params 전달.",
+    description: "[메타] discover_tools로 찾은 전문 도구를 프록시 실행. tool_name에 도구명, params에 파라미터 객체 전달. 예: execute_tool(tool_name='search_tax_tribunal_decisions', params={query:'부가세'}).",
     schema: ExecuteToolSchema,
     handler: executeTool
   },
