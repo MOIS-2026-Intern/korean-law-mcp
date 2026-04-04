@@ -1,6 +1,6 @@
 # Korean Law MCP - API Reference
 
-> **v2.3.0** | 89개 도구 (lite 14개 / full 89개 프로필 지원)
+> **v2.3.2** | 89개 도구 (lite 14개 / full 89개 프로필 지원)
 
 도구 목록은 [README.md](../README.md#도구-목록-87개) 참조.
 상세 파라미터는 각 도구의 Zod 스키마(`src/tools/*.ts`) 참조.

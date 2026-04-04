@@ -14,6 +14,18 @@
 
 ---
 
+## v2.3.2 변경사항
+
+**프로덕션 코드 품질 개선** (47파일, -179줄)
+- 이모지/장식 포맷팅 축소 → LLM 컨텍스트 토큰 절약
+- 체인 도구 findLaws 캐시 적용 → 중복 API 호출 30-50% 절감
+- 조문 파싱 코드 통합 (`formatArticleUnit` 공통 함수)
+- Retry-After 헤더 지원, console.error 제거, 에러 처리 통일
+- allTools Map 변환 (O(1) 조회), execute_tool 재귀 방지
+
+<details>
+<summary>v2.3.0~2.3.1 변경사항</summary>
+
 ## v2.3 변경사항
 
 **원격 MCP 주소** (`your-key` 부분에 [법제처 Open API](https://open.law.go.kr/LSO/openApi/guideResult.do)에서 발급받은 본인 인증키(OC)를 넣으세요):
@@ -33,6 +45,8 @@
 - **lite 도구 라우팅 개선** — 체인/메타 도구 description을 사용자 질문 의도 기반으로 재작성 + 예시 포함. Claude 웹이 "광진구 복무 조례" 같은 자치법규 질문에도 정확한 도구 선택.
 - **도구 힌트 통일** — 비lite 도구 안내를 `execute_tool()` 호출 예시로 변경. 존재하지 않는 도구 직접 호출 문제 방지.
 - **kordoc 통합 파서** — 자체 HWP5/HWPX/PDF 파서 5개를 [kordoc](https://github.com/chrisryugj/kordoc) 통합 파서로 교체. 의존성 경량화.
+
+</details>
 
 <details>
 <summary>v2.2.0 변경사항</summary>

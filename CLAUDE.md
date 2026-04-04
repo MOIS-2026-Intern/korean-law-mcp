@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Korean Law MCP Server v2.3 - 법제처 API 기반 MCP 서버 (89개 도구) + 자연어 CLI + 도구 프로필
+Korean Law MCP Server v2.3.2 - 법제처 API 기반 MCP 서버 (89개 도구) + 자연어 CLI + 도구 프로필
 
 ## Structure
 
