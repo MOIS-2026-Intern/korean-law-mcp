@@ -73,7 +73,7 @@ export async function getLawTree(
 
     // Build tree visualization
     let output = `=== 법령 트리 구조 ===\n\n`
-    output += `📜 ${lawName || "법률"}\n`
+    output += `${lawName || "법률"}\n`
 
     if (structure.law.length > 0) {
       output += `\n└─ 법률 (${structure.law.length}개 조항)\n`
@@ -105,7 +105,7 @@ export async function getLawTree(
       }
     }
 
-    output += `\n\n💡 위임관계: chain_law_system(query="법령명") 또는 execute_tool(tool_name="get_three_tier", params={mst:"법령MST"})`
+    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
 
     return {
       content: [{

@@ -98,28 +98,9 @@ export class LawApiClient {
 
     const text = await response.text()
 
-    if (text.includes("<!DOCTYPE html") || text.includes("<html")) {
-      let errorMsg = "법령을 찾을 수 없습니다."
-
-      if (params.jo) {
-        errorMsg += "\n\n💡 개선 방법:"
-        errorMsg += "\n   1. 전체 법령 조회 (조문 범위 확인):"
-        if (params.mst) {
-          errorMsg += `\n      get_law_text(mst="${params.mst}")`
-        } else if (params.lawId) {
-          errorMsg += `\n      get_law_text(lawId="${params.lawId}")`
-        }
-        errorMsg += "\n\n   2. 키워드 검색:"
-        errorMsg += `\n      search_all(query="관련 키워드")`
-        errorMsg += "\n\n   3. 법령 검색:"
-        errorMsg += `\n      search_law(query="법령명")`
-        errorMsg += "\n\n   ℹ️  일부 법령은 조문 수가 적습니다 (예: 약사법 시행령 제1~39조)"
-      } else {
-        errorMsg += " MST 또는 법령명을 확인해주세요."
-      }
-
-      throw new Error(errorMsg)
-    }
+    this.checkHtmlError(text, params.jo
+      ? `법령 조문(${params.jo})을 찾을 수 없습니다. MST/lawId와 조문번호를 확인해주세요.`
+      : "법령을 찾을 수 없습니다. MST 또는 법령명을 확인해주세요.")
 
     return text
   }

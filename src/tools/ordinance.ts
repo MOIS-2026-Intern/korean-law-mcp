@@ -46,7 +46,7 @@ export async function getOrdinance(
       resultText += `소관부서: ${ordinance.담당부서명}\n`
     }
 
-    resultText += `\n━━━━━━━━━━━━━━━━━━━━━━\n\n`
+    resultText += `\n---\n\n`
 
     // 조문 내용 (단일 객체 → 배열 정규화)
     const rawArticles = lawService.조문?.조
@@ -59,10 +59,9 @@ export async function getOrdinance(
         for (const article of articles) {
           if (article.조제목) tocItems.push(article.조제목)
         }
-        resultText += `📋 목차 (총 ${articles.length}개 조문)\n\n`
+        resultText += `목차 (총 ${articles.length}개 조문)\n\n`
         resultText += tocItems.join("\n")
-        resultText += `\n\n💡 전체 내용이 길어 목차만 표시합니다.`
-        resultText += `\n💡 특정 조문 조회: get_law_text(mst="${input.ordinSeq}", jo="제XX조")`
+        resultText += `\n\n전체 내용이 길어 목차만 표시합니다.`
       } else {
         for (const article of articles) {
           if (article.조제목) {
@@ -84,12 +83,7 @@ export async function getOrdinance(
     if (/수당|급여|보수/.test(name)) parentLawHints.push('search_law(query="지방공무원 보수규정")')
     if (/임용|채용|승진|전보/.test(name)) parentLawHints.push('search_law(query="지방공무원 임용령")')
 
-    if (parentLawHints.length > 0) {
-      resultText += `\n💡 상위법령 참고:\n`
-      parentLawHints.forEach(h => { resultText += `   - ${h}\n` })
-    } else {
-      resultText += `\n💡 상위법령 확인: search_law(query="법령명") 또는 execute_tool(tool_name="get_related_laws", params={query:"키워드"})`
-    }
+    // 상위법령 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
 
     return {
       content: [{

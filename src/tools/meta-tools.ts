@@ -80,10 +80,20 @@ export const ExecuteToolSchema = z.object({
   params: z.record(z.string(), z.unknown()).describe("도구에 전달할 파라미터 객체"),
 })
 
+const META_TOOL_NAMES = new Set(["discover_tools", "execute_tool"])
+
 export async function executeTool(
   apiClient: LawApiClient,
   input: z.infer<typeof ExecuteToolSchema>
 ): Promise<ToolResponse> {
+  // 메타 도구 자기 자신 재귀 호출 방지
+  if (META_TOOL_NAMES.has(input.tool_name)) {
+    return {
+      content: [{ type: "text", text: `메타 도구(${input.tool_name})는 execute_tool로 실행할 수 없습니다.` }],
+      isError: true
+    }
+  }
+
   const tool = _allTools.find(t => t.name === input.tool_name)
   if (!tool) {
     return {
@@ -94,7 +104,7 @@ export async function executeTool(
 
   try {
     const parsed = tool.schema.parse(input.params)
-    return await tool.handler(apiClient, parsed)
+    return await tool.handler(apiClient, parsed) as ToolResponse
   } catch (error) {
     return formatToolError(error as Error, input.tool_name)
   }

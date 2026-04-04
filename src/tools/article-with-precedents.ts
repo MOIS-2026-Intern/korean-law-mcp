@@ -65,11 +65,10 @@ export async function getArticleWithPrecedents(
         // 판례 결과가 있으면 추가
         if (precedentText && !precedentText.includes("검색 결과가 없습니다")) {
           resultText += `\n${"=".repeat(60)}\n`
-          resultText += `\n📚 관련 판례 (상위 5건)\n\n`
+          resultText += `\n관련 판례 (상위 5건)\n\n`
           resultText += precedentText
-          resultText += `\n💡 판례 전문을 보려면 get_precedent_text Tool을 사용하세요.`
         } else {
-          resultText += `\n\n📚 관련 판례: 검색 결과 없음`
+          resultText += `\n\n관련 판례: 검색 결과 없음`
         }
       }
     } catch (error) {

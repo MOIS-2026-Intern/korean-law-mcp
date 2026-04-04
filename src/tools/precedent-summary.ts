@@ -96,7 +96,7 @@ function extractPrecedentSummary(fullText: string, maxLength: number): string {
   }
 
   // 요약 생성
-  let result = "📋 판례 요약\n\n"
+  let result = "판례 요약\n\n"
 
   if (sections.caseNumber) {
     result += `${sections.caseNumber}\n`

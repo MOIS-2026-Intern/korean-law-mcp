@@ -56,8 +56,7 @@ export async function fetchWithRetry(
 
       // Retryable error - check if we have retries left
       if (attempt < retries) {
-        const baseDelay = retryDelay * Math.pow(2, attempt)
-        const delay = baseDelay + Math.random() * baseDelay * 0.5
+        const delay = getRetryDelay(response, retryDelay, attempt)
         await sleep(delay)
         continue
       }
@@ -78,8 +77,7 @@ export async function fetchWithRetry(
 
       // Retry on network errors
       if (attempt < retries) {
-        const baseDelay = retryDelay * Math.pow(2, attempt)
-        const delay = baseDelay + Math.random() * baseDelay * 0.5
+        const delay = getRetryDelay(null, retryDelay, attempt)
         await sleep(delay)
         continue
       }
@@ -87,6 +85,21 @@ export async function fetchWithRetry(
   }
 
   throw lastError || new Error("Request failed after retries")
+}
+
+/** Retry-After 헤더 우선, 없으면 exponential backoff + jitter */
+function getRetryDelay(response: Response | null, retryDelay: number, attempt: number): number {
+  if (response) {
+    const retryAfter = response.headers.get("Retry-After")
+    if (retryAfter) {
+      const seconds = Number(retryAfter)
+      if (!isNaN(seconds) && seconds > 0) {
+        return seconds * 1000
+      }
+    }
+  }
+  const baseDelay = retryDelay * Math.pow(2, attempt)
+  return baseDelay + Math.random() * baseDelay * 0.5
 }
 
 function sleep(ms: number): Promise<void> {

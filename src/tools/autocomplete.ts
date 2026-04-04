@@ -80,7 +80,7 @@ export async function suggestLawNames(
     const rules = suggestions.filter(s => s.type === "총리령" || s.type === "부령")
 
     if (laws.length > 0) {
-      output += `📜 법률 (${laws.length}건)\n`
+      output += `법률 (${laws.length}건)\n`
       for (const law of laws.slice(0, 10)) {
         output += `  • ${law.name}\n`
       }
@@ -91,7 +91,7 @@ export async function suggestLawNames(
     }
 
     if (decrees.length > 0) {
-      output += `📋 시행령 (${decrees.length}건)\n`
+      output += `시행령 (${decrees.length}건)\n`
       for (const decree of decrees.slice(0, 5)) {
         output += `  • ${decree.name}\n`
       }
@@ -102,7 +102,7 @@ export async function suggestLawNames(
     }
 
     if (rules.length > 0) {
-      output += `📄 시행규칙 (${rules.length}건)\n`
+      output += `시행규칙 (${rules.length}건)\n`
       for (const rule of rules.slice(0, 5)) {
         output += `  • ${rule.name}\n`
       }
@@ -112,7 +112,7 @@ export async function suggestLawNames(
       output += `\n`
     }
 
-    output += `💡 자세한 정보는 search_law Tool을 사용하세요.`
+    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
 
     return {
       content: [{

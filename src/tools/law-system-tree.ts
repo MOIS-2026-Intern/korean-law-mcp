@@ -56,7 +56,7 @@ export async function getLawSystemTree(
     const lawType = basicInfo.법종구분?.content || basicInfo.법종구분 || "N/A";
     const revision = basicInfo.제개정구분?.content || basicInfo.제개정구분 || "N/A";
 
-    output += `📋 기준 법령:\n`;
+    output += `기준 법령:\n`;
     output += `  법령명: ${lawName}\n`;
     output += `  법령구분: ${lawType}\n`;
     output += `  제개정: ${revision}\n`;
@@ -64,7 +64,7 @@ export async function getLawSystemTree(
     output += `  공포일자: ${formatDateDot(basicInfo.공포일자)}${basicInfo.공포번호 ? ` (제${basicInfo.공포번호}호)` : ""}\n\n`;
 
     // Law hierarchy (상하위법)
-    output += `📊 법령 체계:\n\n`;
+    output += `법령 체계:\n\n`;
 
     const hierarchy = tree.상하위법 || {};
 
@@ -75,7 +75,7 @@ export async function getLawSystemTree(
       // 시행령
       if (lawSection.시행령) {
         const decrees = Array.isArray(lawSection.시행령) ? lawSection.시행령 : [lawSection.시행령];
-        output += `📜 시행령 (${decrees.length}건):\n`;
+        output += `시행령 (${decrees.length}건):\n`;
         for (const decree of decrees.slice(0, 10)) {
           const info = decree.기본정보 || decree;
           output += `  ├─ ${info.법령명} (${info.법종구분?.content || ""})\n`;
@@ -89,7 +89,7 @@ export async function getLawSystemTree(
       // 시행규칙
       if (lawSection.시행규칙) {
         const rules = Array.isArray(lawSection.시행규칙) ? lawSection.시행규칙 : [lawSection.시행규칙];
-        output += `📄 시행규칙 (${rules.length}건):\n`;
+        output += `시행규칙 (${rules.length}건):\n`;
         for (const rule of rules.slice(0, 10)) {
           const info = rule.기본정보 || rule;
           output += `  ├─ ${info.법령명} (${info.법종구분?.content || ""})\n`;
@@ -106,7 +106,7 @@ export async function getLawSystemTree(
       const related = tree.관련법령.conlaw;
       const relatedList = related ? (Array.isArray(related) ? related : [related]) : [];
       if (relatedList.length > 0) {
-        output += `🔗 관련법령 (${relatedList.length}건):\n`;
+        output += `관련법령 (${relatedList.length}건):\n`;
         for (const law of relatedList.slice(0, 5)) {
           output += `  • ${law.법령명} (${law.법종구분?.content || ""})\n`;
         }
@@ -118,11 +118,8 @@ export async function getLawSystemTree(
     }
 
     // Tree visualization
-    output += `📐 체계도 시각화:\n\n`;
+    output += `체계도 시각화:\n\n`;
     output += buildTreeVisualization(tree, lawName, lawType);
-
-    output += `\n\n💡 위임조문 상세 조회: get_three_tier(lawId="...")`;
-    output += `\n💡 법령 본문 조회: get_law_text(lawId="...")`;
 
     return {
       content: [{

@@ -43,16 +43,6 @@ export async function searchAdminAppeals(
 
     if (totalCount === 0) {
       let errorMsg = "검색 결과가 없습니다.";
-      errorMsg += `\n\n💡 개선 방법:`;
-      errorMsg += `\n   1. 단순 키워드 사용:`;
-      if (args.query) {
-        const words = args.query.split(/\s+/);
-        if (words.length > 1) {
-          errorMsg += `\n      search_admin_appeals(query="${words[0]}")`;
-        }
-      }
-      errorMsg += `\n\n   2. 일반 판례 검색:`;
-      errorMsg += `\n      search_precedents(query="${args.query || '관련 키워드'}")`;
 
       return {
         content: [{
@@ -77,7 +67,7 @@ export async function searchAdminAppeals(
       output += `\n`;
     }
 
-    output += `\n💡 전문을 조회하려면 get_admin_appeal_text(id="행정심판재결례일련번호")를 사용하세요.`;
+    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
 
     return {
       content: [{
@@ -130,7 +120,7 @@ export async function getAdminAppealText(
 
     let output = `=== ${appeal.사건명 || "행정심판례"} ===\n\n`;
 
-    output += `📋 기본 정보:\n`;
+    output += `기본 정보:\n`;
     output += `  사건번호: ${appeal.사건번호 || "N/A"}\n`;
     output += `  처분일자: ${appeal.처분일자 || "N/A"}\n`;
     output += `  의결일자: ${appeal.의결일자 || "N/A"}\n`;
@@ -140,19 +130,19 @@ export async function getAdminAppealText(
     output += `\n`;
 
     if (appeal.주문) {
-      output += `📌 주문:\n${appeal.주문}\n\n`;
+      output += `주문:\n${appeal.주문}\n\n`;
     }
 
     if (appeal.청구취지) {
-      output += `📝 청구취지:\n${appeal.청구취지}\n\n`;
+      output += `청구취지:\n${appeal.청구취지}\n\n`;
     }
 
     if (appeal.재결요지) {
-      output += `📋 재결요지:\n${appeal.재결요지}\n\n`;
+      output += `재결요지:\n${appeal.재결요지}\n\n`;
     }
 
     if (appeal.이유) {
-      output += `📄 이유:\n${appeal.이유}\n`;
+      output += `이유:\n${appeal.이유}\n`;
     }
 
     return {

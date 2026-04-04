@@ -32,15 +32,12 @@ export class LawApiError extends Error {
     this.suggestions = suggestions
   }
 
-  /**
-   * 사용자 친화적 포맷
-   */
   format(): string {
-    let result = `❌ ${this.message}`
+    let result = `[ERROR] ${this.message}`
     if (this.suggestions.length > 0) {
-      result += "\n\n💡 개선 방법:"
+      result += "\n제안:"
       this.suggestions.forEach((s, i) => {
-        result += `\n   ${i + 1}. ${s}`
+        result += `\n  ${i + 1}. ${s}`
       })
     }
     return result
@@ -83,21 +80,18 @@ export function formatToolError(error: unknown, context?: string): ToolResponse 
     suggestions = []
   }
 
-  // 구조화된 텍스트 조립
   const lines: string[] = []
-  lines.push(`❌ [${code}] ${msg}`)
+  lines.push(`[${code}] ${msg}`)
 
   if (context) {
-    lines.push(`🔧 도구: ${context}`)
+    lines.push(`도구: ${context}`)
   }
 
   if (suggestions.length > 0) {
-    lines.push("💡 제안:")
+    lines.push("제안:")
     suggestions.forEach((s, i) => {
-      lines.push(`   ${i + 1}. ${s}`)
+      lines.push(`  ${i + 1}. ${s}`)
     })
-  } else {
-    lines.push("💡 제안: (없음)")
   }
 
   return {
@@ -106,45 +100,3 @@ export function formatToolError(error: unknown, context?: string): ToolResponse 
   }
 }
 
-/**
- * 법령 없음 에러
- */
-export function notFoundError(lawName: string, suggestions?: string[]): LawApiError {
-  return new LawApiError(
-    `'${lawName}'을(를) 찾을 수 없습니다.`,
-    ErrorCodes.NOT_FOUND,
-    suggestions || [
-      `search_law(query="${lawName}")로 법령 검색`,
-      "법령명 철자 확인",
-    ]
-  )
-}
-
-/**
- * API 에러
- */
-export function apiError(status: number, endpoint?: string): LawApiError {
-  const suggestions =
-    status === 429
-      ? ["잠시 후 다시 시도", "요청 빈도 줄이기"]
-      : status >= 500
-        ? ["법제처 API 상태 확인", "잠시 후 다시 시도"]
-        : ["요청 파라미터 확인"]
-
-  return new LawApiError(
-    `API 오류 (${status})${endpoint ? ` - ${endpoint}` : ""}`,
-    status === 429 ? ErrorCodes.RATE_LIMITED : ErrorCodes.API_ERROR,
-    suggestions
-  )
-}
-
-/**
- * 파라미터 검증 에러
- */
-export function invalidParamError(param: string, expected: string): LawApiError {
-  return new LawApiError(
-    `잘못된 파라미터: ${param}`,
-    ErrorCodes.INVALID_PARAM,
-    [`${param}는 ${expected} 형식이어야 합니다.`]
-  )
-}

@@ -678,7 +678,14 @@ function toMcpInputSchema(schema: unknown) {
  * 서버에 도구 등록
  * @param profile - "lite" (14개, 웹 클라이언트용) | "full" (전체, 기본값)
  */
+// 이름 기반 O(1) 조회용 Map
+const toolMap = new Map<string, McpTool>()
+
 export function registerTools(server: Server, apiClient: LawApiClient, profile: ToolProfile = "full") {
+  // Map 초기화
+  toolMap.clear()
+  for (const tool of allTools) toolMap.set(tool.name, tool)
+
   // 메타 도구가 전체 도구 목록 참조할 수 있도록 주입
   setAllToolsRef(allTools)
 
@@ -698,7 +705,7 @@ export function registerTools(server: Server, apiClient: LawApiClient, profile: 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params
 
-    const tool = allTools.find(t => t.name === name)
+    const tool = toolMap.get(name)
     if (!tool) {
       return {
         content: [{ type: "text" as const, text: `Unknown tool: ${name}` }],
@@ -714,8 +721,6 @@ export function registerTools(server: Server, apiClient: LawApiClient, profile: 
         isError: result.isError
       }
     } catch (error) {
-      console.error(`[CallTool] Error in ${name}:`, error instanceof Error ? error.message : error)
-      if (error instanceof Error && error.stack) console.error(error.stack)
       const errResult = formatToolError(error, name)
       return {
         content: errResult.content.map(c => ({ type: "text" as const, text: c.text })),

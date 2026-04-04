@@ -82,7 +82,7 @@ export async function searchCustomsInterpretations(
       output += `\n`;
     }
 
-    output += `\n💡 전문 조회: execute_tool(tool_name="get_customs_interpretation_text", params={id:"해석례ID"})\n`;
+    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
 
     return {
       content: [{
@@ -151,7 +151,7 @@ export async function getCustomsInterpretationText(
 
     let output = `=== ${basic.안건명 || "Customs Interpretation"} ===\n\n`;
 
-    output += `📋 기본 정보:\n`;
+    output += `기본 정보:\n`;
     output += `  해석일련번호: ${basic.법령해석일련번호 || "N/A"}\n`;
     output += `  업무분야: ${basic.업무분야 || "N/A"}\n`;
     output += `  해석일자: ${basic.해석일자 || "N/A"}\n`;
@@ -160,23 +160,23 @@ export async function getCustomsInterpretationText(
     output += `  등록일시: ${basic.등록일시 || "N/A"}\n\n`;
 
     if (content.질의요지) {
-      output += `📌 질의요지:\n${content.질의요지}\n\n`;
+      output += `질의요지:\n${content.질의요지}\n\n`;
     }
 
     if (content.회답) {
-      output += `📝 회답:\n${content.회답}\n\n`;
+      output += `회답:\n${content.회답}\n\n`;
     }
 
     if (content.이유) {
-      output += `💡 이유:\n${content.이유}\n\n`;
+      output += `이유:\n${content.이유}\n\n`;
     }
 
     if (content.관련법령) {
-      output += `📖 관련법령:\n${content.관련법령}\n\n`;
+      output += `관련법령:\n${content.관련법령}\n\n`;
     }
 
     if (content.관세법령정보포털원문링크) {
-      output += `🔗 원문 링크: ${content.관세법령정보포털원문링크}\n`;
+      output += `원문 링크: ${content.관세법령정보포털원문링크}\n`;
     }
 
     return {

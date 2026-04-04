@@ -43,7 +43,7 @@ export async function extractPrecedentKeywords(
     const keywords = extractKeywords(fullText, input.maxKeywords)
 
     // 3. 결과 포맷
-    let resultText = "🔑 핵심 키워드\n\n"
+    let resultText = "핵심 키워드\n\n"
     keywords.forEach((kw, idx) => {
       resultText += `${idx + 1}. ${kw.word} (${kw.count}회)\n`
     })

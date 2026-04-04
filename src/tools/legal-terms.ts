@@ -48,14 +48,6 @@ export async function searchLegalTerms(
 
     if (totalCount === 0) {
       let errorMsg = "검색 결과가 없습니다.";
-      errorMsg += `\n\n💡 개선 방법:`;
-      errorMsg += `\n   1. 단순 용어로 검색:`;
-      errorMsg += `\n      search_legal_terms(query="채권")`;
-      errorMsg += `\n\n   2. 유사 용어 시도:`;
-      errorMsg += `\n      - "선의" / "악의" (법률상 의미)`;
-      errorMsg += `\n      - "하자" / "담보" / "보증"`;
-      errorMsg += `\n\n   3. 법령 검색으로 용어 사용례 확인:`;
-      errorMsg += `\n      search_law(query="${args.query}")`;
 
       return {
         content: [{
@@ -69,7 +61,7 @@ export async function searchLegalTerms(
     let output = `법령용어 검색 결과 (총 ${totalCount}건, ${currentPage}페이지):\n\n`;
 
     for (const term of terms) {
-      output += `📌 ${term.용어명}\n`;
+      output += `${term.용어명}\n`;
       if (term.용어정의) {
         output += `   정의: ${term.용어정의}\n`;
       }
@@ -85,7 +77,7 @@ export async function searchLegalTerms(
       output += `\n`;
     }
 
-    output += `\n💡 법령에서 용어 사용례를 확인하려면 search_law(query="용어명")을 사용하세요.`;
+    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
 
     return {
       content: [{

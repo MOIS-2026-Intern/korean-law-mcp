@@ -45,18 +45,6 @@ export async function searchConstitutionalDecisions(
 
     if (totalCount === 0) {
       let errorMsg = "검색 결과가 없습니다.";
-      errorMsg += `\n\n💡 개선 방법:`;
-      errorMsg += `\n   1. 단순 키워드 사용:`;
-      if (args.query) {
-        const words = args.query.split(/\s+/);
-        if (words.length > 1) {
-          errorMsg += `\n      search_constitutional_decisions(query="${words[0]}")`;
-        }
-      }
-      errorMsg += `\n\n   2. 일반 판례 검색:`;
-      errorMsg += `\n      search_precedents(query="${args.query || '관련 키워드'}")`;
-      errorMsg += `\n\n   3. 법령해석례 검색:`;
-      errorMsg += `\n      search_interpretations(query="${args.query || '관련 키워드'}")`;
 
       return {
         content: [{
@@ -79,7 +67,7 @@ export async function searchConstitutionalDecisions(
       output += `\n`;
     }
 
-    output += `\n💡 전문을 조회하려면 get_constitutional_decision_text(id="헌재결정례일련번호")를 사용하세요.`;
+    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
 
     return {
       content: [{
@@ -131,7 +119,7 @@ export async function getConstitutionalDecisionText(
 
     let output = `=== ${decision.사건명 || "헌재결정례"} ===\n\n`;
 
-    output += `📋 기본 정보:\n`;
+    output += `기본 정보:\n`;
     output += `  사건번호: ${decision.사건번호 || "N/A"}\n`;
     output += `  종국일자: ${decision.종국일자 || decision.선고일자 || "N/A"}\n`;
     if (decision.청구인) output += `  청구인: ${decision.청구인}\n`;
@@ -139,23 +127,23 @@ export async function getConstitutionalDecisionText(
     output += `\n`;
 
     if (decision.판시사항) {
-      output += `📌 판시사항:\n${decision.판시사항}\n\n`;
+      output += `판시사항:\n${decision.판시사항}\n\n`;
     }
 
     if (decision.결정요지 || decision.판결요지) {
-      output += `📝 결정요지:\n${decision.결정요지 || decision.판결요지}\n\n`;
+      output += `결정요지:\n${decision.결정요지 || decision.판결요지}\n\n`;
     }
 
     if (decision.참조조문) {
-      output += `📖 참조조문:\n${decision.참조조문}\n\n`;
+      output += `참조조문:\n${decision.참조조문}\n\n`;
     }
 
     if (decision.참조판례) {
-      output += `⚖️ 참조판례:\n${decision.참조판례}\n\n`;
+      output += `참조판례:\n${decision.참조판례}\n\n`;
     }
 
     if (decision.판례내용 || decision.결정내용 || decision.전문) {
-      output += `📄 전문:\n${decision.판례내용 || decision.결정내용 || decision.전문}\n`;
+      output += `전문:\n${decision.판례내용 || decision.결정내용 || decision.전문}\n`;
     }
 
     return {

@@ -5,6 +5,7 @@
 import { z } from "zod"
 import { DOMParser } from "@xmldom/xmldom"
 import type { LawApiClient } from "../lib/api-client.js"
+import { truncateResponse } from "../lib/schemas.js"
 import { formatToolError } from "../lib/errors.js"
 
 export const AdvancedSearchSchema = z.object({
@@ -56,7 +57,7 @@ export async function advancedSearch(
     results = results.slice(0, input.display)
 
     // 결과 포맷
-    let resultText = `🔍 고급 검색 결과 (${results.length}건)\n\n`
+    let resultText = `고급 검색 결과 (${results.length}건)\n\n`
     resultText += `검색어: ${input.query}\n`
     resultText += `연산자: ${input.operator}\n`
     if (input.fromDate || input.toDate) {
@@ -74,7 +75,7 @@ export async function advancedSearch(
     return {
       content: [{
         type: "text",
-        text: resultText
+        text: truncateResponse(resultText)
       }]
     }
   } catch (error) {

@@ -72,7 +72,7 @@ export async function searchLaw(
       resultText += `   - 구분: ${lawType}\n\n`
     }
 
-    resultText += `\n💡 특정 조문을 조회하려면 get_law_text Tool을 사용하세요.`
+    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
 
     // Cache the result (1 hour TTL)
     const truncated = truncateResponse(resultText)

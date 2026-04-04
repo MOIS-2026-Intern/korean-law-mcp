@@ -6,8 +6,9 @@ import { z } from "zod"
 import { truncateSections } from "../lib/schemas.js"
 import { formatToolError } from "../lib/errors.js"
 import { extractTag } from "../lib/xml-parser.js"
+import { lawCache } from "../lib/cache.js"
 import type { LawApiClient } from "../lib/api-client.js"
-import type { ToolResponse } from "../lib/types.js"
+import type { ToolResponse, LooseToolResponse } from "../lib/types.js"
 
 // Tool handler imports
 import { analyzeDocument } from "./document-analysis.js"
@@ -53,7 +54,7 @@ type ExpansionType = "annex_fee" | "annex_form" | "annex_table" | "precedent" | 
 
 async function callTool(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handler: (apiClient: LawApiClient, input: any) => Promise<ToolResponse>,
+  handler: (apiClient: LawApiClient, input: any) => Promise<LooseToolResponse>,
   apiClient: LawApiClient,
   input: Record<string, unknown>
 ): Promise<CallResult> {
@@ -97,6 +98,11 @@ async function findLaws(
   apiKey?: string,
   max = 3
 ): Promise<LawInfo[]> {
+  // 캐시 확인 (검색어 기반, 1시간 TTL)
+  const cacheKey = `chain-search:${query}:${max}`
+  const cached = lawCache.get<LawInfo[]>(cacheKey)
+  if (cached) return cached.slice(0, max)
+
   // 1차: 원본 쿼리로 검색
   let results: LawInfo[] = []
   try {
@@ -124,6 +130,11 @@ async function findLaws(
       const scoreB = scoreLawRelevance(b.lawName, query, queryWords)
       return scoreB - scoreA
     })
+  }
+
+  // 캐시 저장 (1시간 TTL)
+  if (results.length > 0) {
+    lawCache.set(cacheKey, results, 60 * 60 * 1000)
   }
 
   return results

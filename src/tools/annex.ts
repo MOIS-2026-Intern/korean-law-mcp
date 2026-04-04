@@ -199,7 +199,7 @@ async function extractAnnexContent(
     return {
       content: [{
         type: "text",
-        text: `📄 ${annexTitle}\n\n이미지 기반 PDF입니다 (${result.pageCount || "?"}페이지). 텍스트 추출이 불가합니다.\n다운로드 링크: ${LAW_BASE_URL}${pdfLink}`
+        text: `${annexTitle}\n\n이미지 기반 PDF입니다 (${result.pageCount || "?"}페이지). 텍스트 추출이 불가합니다.\n다운로드 링크: ${LAW_BASE_URL}${pdfLink}`
       }]
     }
   }
@@ -224,7 +224,7 @@ async function extractAnnexContent(
     if (extracted) markdown = extracted
   }
 
-  const header = `📋 ${normalizedLawName} - ${annexTitle}\n(파일 형식: ${result.fileType.toUpperCase()}${result.pageCount ? `, ${result.pageCount}페이지` : ""})\n\n`
+  const header = `${normalizedLawName} - ${annexTitle}\n(파일 형식: ${result.fileType.toUpperCase()}${result.pageCount ? `, ${result.pageCount}페이지` : ""})\n\n`
   const fullText = header + markdown
   return {
     content: [{
@@ -269,16 +269,16 @@ function formatAnnexList(
       const relatedLaw = annex.관련자치법규명
       const localGov = annex.지자체기관명
       if (relatedLaw) {
-        resultText += `   📚 관련법규: ${relatedLaw.replace(/<[^>]+>/g, '')}\n`
+        resultText += `   관련법규: ${relatedLaw.replace(/<[^>]+>/g, '')}\n`
       }
       if (localGov) {
-        resultText += `   🏛️  지자체: ${localGov}\n`
+        resultText += `   지자체: ${localGov}\n`
       }
     } else if (lawType === "admin") {
-      if (annex.관련행정규칙명) resultText += `   📚 행정규칙: ${annex.관련행정규칙명}\n`
-      if (annex.소관부처) resultText += `   🏢 소관부처: ${annex.소관부처}\n`
+      if (annex.관련행정규칙명) resultText += `   행정규칙: ${annex.관련행정규칙명}\n`
+      if (annex.소관부처) resultText += `   소관부처: ${annex.소관부처}\n`
     } else {
-      if (annex.관련법령명) resultText += `   📚 관련법령: ${annex.관련법령명}\n`
+      if (annex.관련법령명) resultText += `   관련법령: ${annex.관련법령명}\n`
     }
 
     resultText += `\n`
@@ -288,7 +288,7 @@ function formatAnnexList(
     resultText += `\n... 외 ${annexList.length - maxItems}개 항목 (생략)\n`
   }
 
-  resultText += `\n⚠️ 별표 내용을 확인하려면 이 도구(get_annexes)를 bylSeq 파라미터와 함께 다시 호출하세요.\n예: get_annexes({ lawName: "${normalizedLawName}", bylSeq: "${annexList[0]?.별표번호 || '000100'}" })`
+  resultText += `\n[주의] 별표 내용을 확인하려면 이 도구(get_annexes)를 bylSeq 파라미터와 함께 다시 호출하세요.\n예: get_annexes({ lawName: "${normalizedLawName}", bylSeq: "${annexList[0]?.별표번호 || '000100'}" })`
   resultText += `\n커넥터에서 bylSeq 입력이 제한되면 lawName에 별표번호를 함께 넣어 호출할 수 있습니다.\n예: get_annexes({ lawName: "${normalizedLawName} 별표4" })`
 
   return { content: [{ type: "text", text: resultText }] }

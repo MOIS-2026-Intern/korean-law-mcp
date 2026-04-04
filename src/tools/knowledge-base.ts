@@ -47,23 +47,20 @@ export async function getLegalTermKB(
 
     if (totalCount === 0 || items.length === 0) {
       return {
-        content: [{ type: "text", text: `'${args.query}' 검색 결과가 없습니다.\n\n💡 search_legal_terms로 기본 용어 검색을 시도해보세요.` }],
+        content: [{ type: "text", text: `'${args.query}' 검색 결과가 없습니다.` }],
         isError: true,
       };
     }
 
-    let output = `📚 법령용어 지식베이스 (${totalCount}건):\n\n`;
+    let output = `법령용어 지식베이스 (${totalCount}건):\n\n`;
 
     for (const item of items) {
-      output += `📌 ${item.법령용어명 || item.용어명}\n`;
-      if (item.동음이의어) output += `   ⚠️ 동음이의어 있음\n`;
-      if (item.용어간관계링크) output += `   🔗 용어관계: 있음\n`;
-      if (item.조문간관계링크) output += `   📜 조문관계: 있음\n`;
+      output += `${item.법령용어명 || item.용어명}\n`;
+      if (item.동음이의어) output += `   [주의] 동음이의어 있음\n`;
+      if (item.용어간관계링크) output += `   용어관계: 있음\n`;
+      if (item.조문간관계링크) output += `   조문관계: 있음\n`;
       output += `\n`;
     }
-
-    output += `\n💡 상세 정의: get_legal_term_detail(query="용어명")`;
-    output += `\n💡 일상용어 연계: get_term_daily_link(query="용어명")`;
 
     return { content: [{ type: "text", text: output }] };
   } catch (error) {
@@ -105,19 +102,19 @@ export async function getLegalTermDetail(
       };
     }
 
-    let output = `📖 법령용어 상세\n\n`;
-    output += `📌 ${termName}`;
+    let output = `법령용어 상세\n\n`;
+    output += `${termName}`;
     if (termHanja) output += ` (${termHanja})`;
     output += `\n\n`;
 
     if (definition) {
-      output += `📝 정의:\n${definition}\n\n`;
+      output += `정의:\n${definition}\n\n`;
     }
     if (source) {
-      output += `📚 출처: ${source}\n`;
+      output += `출처: ${source}\n`;
     }
     if (code) {
-      output += `🏷️ 분류: ${code}\n`;
+      output += `분류: ${code}\n`;
     }
 
     return { content: [{ type: "text", text: output }] };
@@ -161,22 +158,19 @@ export async function getDailyTerm(
       return {
         content: [{
           type: "text",
-          text: `'${args.query}' 일상용어 검색 결과가 없습니다.\n\n💡 법령용어로 검색: search_legal_terms(query="${args.query}")\n💡 AI 검색: search_ai_law(query="${args.query}")`
+          text: `'${args.query}' 일상용어 검색 결과가 없습니다.`
         }],
         isError: true,
       };
     }
 
-    let output = `🗣️ 일상용어 검색 결과 (${totalCount}건):\n\n`;
+    let output = `일상용어 검색 결과 (${totalCount}건):\n\n`;
 
     for (const item of items) {
-      output += `📌 ${item.법령용어명 || item.용어명}\n`;
+      output += `${item.법령용어명 || item.용어명}\n`;
       if (item.법령용어ID) output += `   ID: ${item.법령용어ID}\n`;
       output += `\n`;
     }
-
-    output += `\n💡 상세 조회: get_legal_term_detail(query="용어명")`;
-    output += `\n💡 관련 법령용어: get_daily_to_legal(dailyTerm="용어명")`;
 
     return { content: [{ type: "text", text: output }] };
   } catch (error) {
@@ -216,9 +210,9 @@ export async function getDailyToLegal(
       return await fallbackTermSearch(apiClient, args.dailyTerm, "일상용어");
     }
 
-    let output = `🔗 일상용어 → 법령용어 연계\n\n`;
-    output += `📝 입력: ${args.dailyTerm}\n\n`;
-    output += `📚 관련 법령용어:\n`;
+    let output = `일상용어 → 법령용어 연계\n\n`;
+    output += `입력: ${args.dailyTerm}\n\n`;
+    output += `관련 법령용어:\n`;
 
     for (const item of items) {
       output += `   • ${item.법령용어명 || item.연계용어명}\n`;
@@ -262,9 +256,9 @@ export async function getLegalToDaily(
       return await fallbackTermSearch(apiClient, args.legalTerm, "법령용어");
     }
 
-    let output = `🔗 법령용어 → 일상용어 연계\n\n`;
-    output += `📝 입력: ${args.legalTerm}\n\n`;
-    output += `🗣️ 관련 일상용어:\n`;
+    let output = `법령용어 → 일상용어 연계\n\n`;
+    output += `입력: ${args.legalTerm}\n\n`;
+    output += `관련 일상용어:\n`;
 
     for (const item of items) {
       output += `   • ${item.일상용어명 || item.연계용어명}\n`;
@@ -305,7 +299,7 @@ export async function getTermArticles(
       return {
         content: [{
           type: "text",
-          text: `'${args.term}' 용어-조문 연계 조회 실패.\n\n💡 대안:\n   search_ai_law(query="${args.term}") - AI 지능형 검색\n   search_law(query="${args.term}") - 법령 검색`,
+          text: `'${args.term}' 용어-조문 연계 조회 실패.`,
         }],
         isError: true,
       };
@@ -319,16 +313,16 @@ export async function getTermArticles(
       return {
         content: [{
           type: "text",
-          text: `'${args.term}' 용어가 사용된 조문을 찾을 수 없습니다.\n\n💡 search_ai_law(query="${args.term}")로 AI 검색을 시도해보세요.`,
+          text: `'${args.term}' 용어가 사용된 조문을 찾을 수 없습니다.`,
         }],
         isError: true,
       };
     }
 
-    let output = `📜 '${args.term}' 용어 사용 조문 (${totalCount}건):\n\n`;
+    let output = `'${args.term}' 용어 사용 조문 (${totalCount}건):\n\n`;
 
     for (const item of items) {
-      output += `📌 ${item.법령명}\n`;
+      output += `${item.법령명}\n`;
       if (item.조문번호) {
         output += `   제${item.조문번호}조`;
         if (item.조문제목) output += ` (${item.조문제목})`;
@@ -338,7 +332,7 @@ export async function getTermArticles(
       output += `\n`;
     }
 
-    output += `\n💡 조문 상세: get_law_text(lawId="법령ID", jo="조문번호")`;
+    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
 
     return { content: [{ type: "text", text: truncateResponse(output) }] };
   } catch (error) {
@@ -383,7 +377,7 @@ export async function getRelatedLaws(
       return {
         content: [{
           type: "text",
-          text: `관련법령 조회 실패.\n\n💡 대안:\n   get_law_system_tree(lawName="${args.lawName || args.lawId}") - 법령체계도\n   get_three_tier(lawId="${args.lawId}") - 3단비교`,
+          text: `관련법령 조회 실패.`,
         }],
         isError: true,
       };
@@ -397,23 +391,23 @@ export async function getRelatedLaws(
       return {
         content: [{
           type: "text",
-          text: `관련법령을 찾을 수 없습니다.\n\n💡 get_law_system_tree 또는 get_three_tier를 사용해보세요.`,
+          text: `관련법령을 찾을 수 없습니다.`,
         }],
         isError: true,
       };
     }
 
-    let output = `🔗 관련법령 (${totalCount}건):\n\n`;
+    let output = `관련법령 (${totalCount}건):\n\n`;
 
     for (const item of items) {
-      output += `📜 ${item.법령명}\n`;
+      output += `${item.법령명}\n`;
       if (item.관계유형) output += `   관계: ${item.관계유형}\n`;
       if (item.법령ID) output += `   법령ID: ${item.법령ID}\n`;
       if (item.법령종류) output += `   종류: ${item.법령종류}\n`;
       output += `\n`;
     }
 
-    output += `\n💡 법령 조회: get_law_text(lawId="법령ID")`;
+    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
 
     return { content: [{ type: "text", text: truncateResponse(output) }] };
   } catch (error) {

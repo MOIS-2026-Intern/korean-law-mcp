@@ -48,9 +48,9 @@ export async function compareOldNew(
     if (revisionType) resultText += `개정구분: ${revisionType}\n`
     if (oldDate) resultText += `구법 공포일: ${oldDate}\n`
     if (newDate) resultText += `신법 공포일: ${newDate}\n`
-    resultText += `\n━━━━━━━━━━━━━━━━━━━━━━\n`
+    resultText += `\n---\n`
     resultText += `신구법 대조\n`
-    resultText += `━━━━━━━━━━━━━━━━━━━━━━\n\n`
+    resultText += `---\n\n`
 
     // 구조문목록과 신조문목록 파싱
     const oldArticleList = doc.getElementsByTagName("구조문목록")[0]
@@ -92,9 +92,9 @@ export async function compareOldNew(
       const articleNumMatch = (newContent || oldContent).match(/제\d+조(?:의\d+)?/)
       const articleLabel = articleNumMatch ? articleNumMatch[0] : `조문 ${i + 1}`
 
-      resultText += `\n━━━━━━━━━━━━━━━━━━━━━━\n`
+      resultText += `\n---\n`
       resultText += `${articleLabel}\n`
-      resultText += `━━━━━━━━━━━━━━━━━━━━━━\n\n`
+      resultText += `---\n\n`
 
       if (oldContent) {
         resultText += `[개정 전]\n${oldContent}\n\n`
@@ -111,7 +111,7 @@ export async function compareOldNew(
 
     if (maxArticles > displayCount) {
       resultText += `\n... 외 ${maxArticles - displayCount}개 조문 (생략)\n`
-      resultText += `💡 전체 ${maxArticles}개 조문 중 ${displayCount}개만 표시합니다.\n`
+      resultText += `전체 ${maxArticles}개 조문 중 ${displayCount}개만 표시합니다.\n`
     }
 
     return {

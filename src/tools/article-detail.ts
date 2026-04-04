@@ -6,6 +6,7 @@ import { z } from "zod"
 import type { LawApiClient } from "../lib/api-client.js"
 import { truncateResponse } from "../lib/schemas.js"
 import { buildJO } from "../lib/law-parser.js"
+import { cleanHtml } from "../lib/article-parser.js"
 import { formatToolError } from "../lib/errors.js"
 
 export const GetArticleDetailSchema = z.object({
@@ -98,7 +99,7 @@ export async function getArticleDetail(
       // 조문내용
       if (unit.조문내용) {
         const content = typeof unit.조문내용 === "string" ? unit.조문내용 : String(unit.조문내용)
-        resultText += `${content}\n`
+        resultText += `${cleanHtml(content)}\n`
       }
 
       // 항 내용
@@ -108,27 +109,25 @@ export async function getArticleDetail(
           const hangNum = hang.항번호 || ""
           const hangContent = hang.항내용 || ""
           if (hangContent) {
-            resultText += `  ${hangNum ? `(${hangNum})` : ""} ${hangContent}\n`
+            resultText += `  ${hangNum ? `(${hangNum})` : ""} ${cleanHtml(hangContent)}\n`
           }
 
-          // 호 내용
           if (hang.호) {
             const hoList = Array.isArray(hang.호) ? hang.호 : [hang.호]
             for (const ho of hoList) {
               const hoNum = ho.호번호 || ""
               const hoContent = ho.호내용 || ""
               if (hoContent) {
-                resultText += `    ${hoNum}. ${hoContent}\n`
+                resultText += `    ${hoNum}. ${cleanHtml(hoContent)}\n`
               }
 
-              // 목 내용
               if (ho.목) {
                 const mokList = Array.isArray(ho.목) ? ho.목 : [ho.목]
                 for (const mok of mokList) {
                   const mokNum = mok.목번호 || ""
                   const mokContent = mok.목내용 || ""
                   if (mokContent) {
-                    resultText += `      ${mokNum}. ${mokContent}\n`
+                    resultText += `      ${mokNum}. ${cleanHtml(mokContent)}\n`
                   }
                 }
               }

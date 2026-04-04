@@ -2,6 +2,7 @@ import { z } from "zod"
 import type { LawApiClient } from "../lib/api-client.js"
 import { parsePrecedentXML } from "../lib/xml-parser.js"
 import { truncateResponse } from "../lib/schemas.js"
+import { formatToolError } from "../lib/errors.js"
 
 export const searchPrecedentsSchema = z.object({
   query: z.string().optional().describe("검색 키워드 (예: '자동차', '담보권')"),
@@ -58,12 +59,7 @@ export async function searchPrecedents(
 
   if (totalCount === 0) {
     const kw = args.query || "관련 키워드"
-    const hint = [
-      "검색 결과가 없습니다.\n\n💡 개선 방법:",
-      `  1. 단순 키워드: search_precedents(query="${kw.split(/\s+/)[0]}")`,
-      `  2. 해석례 검색: search_interpretations(query="${kw}")`,
-      `  3. 법령 검색: search_law(query="${kw}")`,
-    ].join("\n")
+    const hint = `검색 결과가 없습니다.\n제안:\n  1. 단순 키워드: search_precedents(query="${kw.split(/\s+/)[0]}")\n  2. 해석례 검색: search_interpretations(query="${kw}")\n  3. 법령 검색: search_law(query="${kw}")`
     return { content: [{ type: "text", text: hint }], isError: true };
   }
 
@@ -85,17 +81,14 @@ export async function searchPrecedents(
     output += `\n`;
   }
 
-  output += `\n💡 전문을 조회하려면 get_precedent_text Tool을 사용하세요.\n`;
-
   return {
     content: [{
       type: "text",
-      text: output
+      text: truncateResponse(output)
     }]
   };
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error)
-    return { content: [{ type: "text", text: `Error: ${msg}` }], isError: true }
+    return formatToolError(error, "search_precedents")
   }
 }
 
@@ -154,7 +147,7 @@ export async function getPrecedentText(
 
   let output = `=== ${basic.판례명 || "판례"} ===\n\n`;
 
-  output += `📋 기본 정보:\n`;
+  output += `기본 정보:\n`;
   output += `  사건번호: ${basic.사건번호 || "N/A"}\n`;
   output += `  법원: ${basic.법원명 || "N/A"}\n`;
   output += `  선고일: ${basic.선고일자 || "N/A"}\n`;
@@ -162,23 +155,23 @@ export async function getPrecedentText(
   output += `  판결유형: ${basic.판결유형 || "N/A"}\n\n`;
 
   if (content.판시사항) {
-    output += `📌 판시사항:\n${content.판시사항}\n\n`;
+    output += `판시사항:\n${content.판시사항}\n\n`;
   }
 
   if (content.판결요지) {
-    output += `📝 판결요지:\n${content.판결요지}\n\n`;
+    output += `판결요지:\n${content.판결요지}\n\n`;
   }
 
   if (content.참조조문) {
-    output += `📖 참조조문:\n${content.참조조문}\n\n`;
+    output += `참조조문:\n${content.참조조문}\n\n`;
   }
 
   if (content.참조판례) {
-    output += `⚖️ 참조판례:\n${content.참조판례}\n\n`;
+    output += `참조판례:\n${content.참조판례}\n\n`;
   }
 
   if (content.전문) {
-    output += `📄 전문:\n${content.전문}\n`;
+    output += `전문:\n${content.전문}\n`;
   }
 
   return {
@@ -188,8 +181,7 @@ export async function getPrecedentText(
     }]
   };
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error)
-    return { content: [{ type: "text", text: `Error: ${msg}` }], isError: true }
+    return formatToolError(error, "get_precedent_text")
   }
 }
 

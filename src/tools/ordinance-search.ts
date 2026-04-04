@@ -87,7 +87,7 @@ export async function searchOrdinance(
       return {
         content: [{
           type: "text",
-          text: `'${input.query}' 검색 결과가 없습니다.\n\n시도한 검색어: '${triedQueries}'\n\n💡 다른 키워드로 다시 검색해보세요.`
+          text: `'${input.query}' 검색 결과가 없습니다.\n\n시도한 검색어: '${triedQueries}'`
         }]
       }
     }
@@ -105,7 +105,7 @@ export async function searchOrdinance(
       output += `\n`
     }
 
-    output += `\n💡 전문 조회: execute_tool(tool_name="get_ordinance", params={ordinSeq:"일련번호"})\n`
+    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
 
     return {
       content: [{
