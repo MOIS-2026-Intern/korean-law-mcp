@@ -25,6 +25,8 @@ const sessions = new Map<string, SessionInfo>()
 
 export async function startHTTPServer(createServer: (profile?: ToolProfile) => Server, port: number) {
   const app = express()
+  // Fly.io proxy 뒤에서 실제 클라이언트 IP 인식 (rate limit per-IP 정상 동작)
+  app.set("trust proxy", true)
   app.use(express.json({ limit: "100kb" }))
 
   // 10분 idle 세션 자동 정리 (2분마다 체크)
