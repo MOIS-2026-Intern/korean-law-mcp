@@ -561,6 +561,73 @@ const routePatterns: Pattern[] = [
     priority: 20,
   },
 
+  // ── 29-1. 인용 검증 (citation validator) ──
+  {
+    name: "verify_citations",
+    patterns: [
+      /인용\s*(?:검증|확인|체크)/,
+      /(?:조문|조항)\s*실존/,
+      /(?:환각|hallucination)\s*(?:검증|체크)/i,
+      /이\s*(?:텍스트|글|답변)에.*조문.*(?:맞|실제)/,
+    ],
+    tool: "verify_citations",
+    extract: (query) => ({ text: query }),
+    reason: "인용검증 키워드 → 조문 실존/내용 검증",
+    priority: 2,
+  },
+
+  // ── 29-2. 법령 비교 ──
+  {
+    name: "law_comparison",
+    patterns: [
+      /(.+?)\s*(?:와|과|vs\.?)\s*(.+?)\s*(?:차이|비교|다른\s*점)/,
+      /(.+?)\s*(?:vs|VS)\s*(.+)/,
+    ],
+    tool: "chain_law_system",
+    extract: (query) => ({ query, scenario: undefined }),
+    reason: "법령 비교 키워드 → 법체계 체인 (두 법령 모두 구조 확인)",
+    priority: 8,
+  },
+
+  // ── 29-3. 시간 필터 (최근 N년 개정) ──
+  // (기존 date-parser가 날짜범위 처리하지만 "최근 N년" 명시적 패턴 강화)
+  {
+    name: "time_filter_amendment",
+    patterns: [
+      /최근\s*\d+\s*(?:년|개월)\s*(?:이?내|동안)\s*개정/,
+      /(?:20\d{2})\s*년\s*이후\s*개정/,
+    ],
+    tool: "chain_amendment_track",
+    extract: (query) => ({ query: extractLawName(query) || query }),
+    reason: "시간 필터 + 개정 키워드 → 개정추적 체인",
+    priority: 9,
+  },
+
+  // ── 29-4. 손해배상·불법행위 (민사 일반) ──
+  {
+    name: "civil_liability",
+    patterns: [
+      /손해\s*배상|불법\s*행위|위자료|과실\s*비율/,
+    ],
+    tool: "chain_full_research",
+    extract: (query) => ({ query }),
+    reason: "민사 책임 키워드 → 종합 리서치 (민법+판례+해석례)",
+    priority: 12,
+  },
+
+  // ── 29-5. 계약서/약관 검토 (기존 chain_document_review 라우팅 강화) ──
+  {
+    name: "contract_review",
+    patterns: [
+      /(?:계약서|약관|협정서|합의서).*(?:검토|리스크|독소|위험|체크)/,
+      /(?:독소\s*조항|불공정\s*조항)/,
+    ],
+    tool: "chain_document_review",
+    extract: (query) => ({ text: query }),
+    reason: "계약서/약관 검토 키워드 → 문서 리스크 검토 체인",
+    priority: 6,
+  },
+
   // ── 30. 명시적 법령명 (법, 령, 규칙으로 끝나는) ──
   // "등록면허세법" 같이 법명 자체에 다른 패턴 키워드가 포함된 경우
   // 법명 패턴이 우선해야 하므로 priority를 신고/등록(16)보다 높게 설정.

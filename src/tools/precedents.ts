@@ -97,6 +97,11 @@ export async function searchPrecedents(
     output += `\n`;
   }
 
+  // 다음 단계 힌트
+  if (precs.length > 0 && precs[0].판례일련번호) {
+    output += `💡 다음: get_precedent_text(id="${precs[0].판례일련번호}") 로 판결문 전문. full=true 로 축약 해제. 유사판례 원하면 find_similar_precedents 사용.\n`
+  }
+
   return {
     content: [{
       type: "text",

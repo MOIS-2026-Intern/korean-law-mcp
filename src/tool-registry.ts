@@ -57,6 +57,7 @@ import { getHistoricalLaw, getHistoricalLawSchema, searchHistoricalLaw, searchHi
 import { getLawSystemTree, getLawSystemTreeSchema } from "./tools/law-system-tree.js"
 import { getLinkedOrdinances, LinkedOrdinancesSchema, getLinkedOrdinanceArticles, LinkedOrdinanceArticlesSchema, getDelegatedLaws, DelegatedLawsSchema, getLinkedLawsFromOrdinance, LinkedLawsFromOrdinanceSchema } from "./tools/law-linkage.js"
 import { analyzeDocument, AnalyzeDocumentSchema } from "./tools/document-analysis.js"
+import { verifyCitations, VerifyCitationsSchema } from "./tools/verify-citations.js"
 // Chain tool imports
 import {
   chainLawSystem, chainLawSystemSchema,
@@ -580,51 +581,53 @@ export const allTools: McpTool[] = [
   },
 
   // === 체인 도구 (다단계 자동 실행) ===
+  // 사용 원칙: 단일 조회(search_law/get_law_text)로 답이 되면 체인 쓰지 말 것.
+  // 체인은 "여러 API를 병렬로 엮어야 하는" 복합 질문 전용.
   {
     name: "chain_law_system",
-    description: "[⛓] 법령 구조·체계. 법령→3단비교(법률·시행령·시행규칙)→조문→별표. scenario: delegation(위임입법감시)/impact(개정영향도)",
+    description: "[⛓체인] 법령 전체 구조 종합. 1개 법령의 법률·시행령·시행규칙 3단 + 위임조문 + 하위법령 + 별표까지 한 번에. 예: '관세법 체계 알려줘', '이 법 하위법령 뭐 있어?', '위임관계 보여줘'. scenario=delegation: 위임은 있는데 미제정된 하위법령 감시(감사원용). scenario=impact: 법령 개정 시 연쇄 영향받는 하위법령/조례 탐지(입법영향평가용). 단순 법령명 검색만 필요하면 search_law 쓸 것.",
     schema: chainLawSystemSchema,
     handler: chainLawSystem
   },
   {
     name: "chain_action_basis",
-    description: "[⛓] 허가·인가·처분·기준 근거. 3단비교+해석례+판례+행심 병렬. scenario: penalty(처분기준표+감경판례+벌칙이력)",
+    description: "[⛓체인] 행정처분·허가·인가의 법적 근거 종합. 3단비교+해석례+판례+행심 병렬 조회. 예: '음식점 영업정지 근거', '건축허가 요건', '과징금 부과 기준 + 감경 판례'. scenario=penalty: 과태료/과징금/영업정지 금액·기간 별표 + 1·2·3차 위반 기준 + 감경 판례 + 행심 인용률까지. 공무원 처분 담당자/피처분자 모두 타겟. 단순 판례 검색이면 search_precedents 쓸 것.",
     schema: chainActionBasisSchema,
     handler: chainActionBasis
   },
   {
     name: "chain_dispute_prep",
-    description: "[⛓] 불복·소송·심판 대비. 판례+행심+도메인결정례 병렬",
+    description: "[⛓체인] 불복·소송·심판 준비. 대법원 판례 + 행정심판례 + 해당 도메인 결정례(조세심판·공정위·노동위 등) 병렬 수집. 예: '과세처분 불복 방법', '해고 부당노동 구제', '공정위 과징금 취소소송'. 소송/심판 전략 준비용. 단일 도메인만 보면 search_decisions 쓸 것.",
     schema: chainDisputePrepSchema,
     handler: chainDisputePrep
   },
   {
     name: "chain_amendment_track",
-    description: "[⛓] 법령 개정·연혁. 신구대조+조문이력. scenario: timeline(구간별 판례·해석례 시계열)",
+    description: "[⛓체인] 법령·조문 개정 이력 종합. 신구대조표 + 조문별 개정이력 + 연혁법령. 예: '개인정보보호법 2023년 개정 뭐 바뀌었어', '이 조문 언제부터 적용'. scenario=timeline: 제정~현재 구간별로 판례/해석례 시계열 매핑(소급적용 쟁점용). 단순 최신 법령 조회는 get_law_text 쓸 것.",
     schema: chainAmendmentTrackSchema,
     handler: chainAmendmentTrack
   },
   {
     name: "chain_ordinance_compare",
-    description: "[⛓] 자치법규(조례·규칙). 상위법→위임체계→전국조례검색. scenario: compliance(상위법 적합성 검증)",
+    description: "[⛓체인] 자치법규(조례·규칙) 종합 분석. 상위법령 + 위임체계 + 전국 동일유형 조례 비교. 예: '서울시 주차 조례 전국 비교', '광진구 조례가 상위법 위임 범위 안인가'. scenario=compliance: 상위법 적합성 검증(지자체 법제심사용) — 위헌/위법 판결 선례 + 권익위 심판례까지. 특정 조례 단건 조회는 get_ordinance 쓸 것.",
     schema: chainOrdinanceCompareSchema,
     handler: chainOrdinanceCompare
   },
   {
     name: "chain_full_research",
-    description: "[⛓] 복합·종합 리서치. AI검색+법령+판례+해석례 병렬. scenario: customs(관세3법+해석+FTA+조세심판)",
+    description: "[⛓체인] 도메인·법령명이 불명확한 복합 질문 전용. AI검색 + 법령검색 + 판례 + 해석례 병렬. 예: '음주운전 처벌 기준', '퇴직금 중간정산', '상가 권리금 받는 법'. 일반인 자연어 질문용 폴백 체인. scenario=customs: 관세 3법(관세/FTA특례/대외무역) + 관세청 해석 + FTA 조약 + 조세심판 관세건. 법령명을 알면 search_law → get_law_text가 더 정확.",
     schema: chainFullResearchSchema,
     handler: chainFullResearch
   },
   {
     name: "chain_procedure_detail",
-    description: "[⛓] 절차·비용·서식. 법령→3단비교→별표/서식. scenario: manual(행정규칙+자치특칙+해석례)",
+    description: "[⛓체인] 행정 절차·비용·서식 종합. 법적 근거(법률·시행령·시행규칙) + 처리기한 + 별표/별지서식 + 수수료. 예: '건축허가 처리 절차', '법인설립 신고서', '영업허가 수수료'. scenario=manual: 일선 공무원용 처리 매뉴얼 — 훈령/예규/고시(내부지침) + 우리 지자체 조례 특칙 + FAQ 성격 해석례까지 포함. 단일 별표 조회는 get_annexes 쓸 것.",
     schema: chainProcedureDetailSchema,
     handler: chainProcedureDetail
   },
   {
     name: "chain_document_review",
-    description: "[⛓] 계약서·약관·협정서 검토. 리스크분석+근거법령+관련판례",
+    description: "[⛓체인] 계약서·약관·협정서 조항별 리스크 검토. analyze_document + 근거법령 자동검색 + 관련 판례. 예: '이 임대차계약서 위험한 조항 있어?', '비밀유지약정 독소조항 체크'. 문서 본문을 text로 넘기면 조항 파싱 → 리스크 탐지 → 관련 법령/판례 매핑. 단순 리스크 분석만이면 analyze_document 쓸 것.",
     schema: chainDocumentReviewSchema,
     handler: chainDocumentReview
   },
@@ -635,6 +638,14 @@ export const allTools: McpTool[] = [
     description: "[문서분석] 계약서/약관/협정서 텍스트의 조항별 법적 리스크 분석. 문서 유형 자동 분류, 위험 조항 식별, 관련 법령 검색 힌트 제공.",
     schema: AnalyzeDocumentSchema,
     handler: analyzeDocument
+  },
+
+  // === 인용 검증 (killer feature) ===
+  {
+    name: "verify_citations",
+    description: "[인용검증] LLM 환각 방지 — 사용자/AI가 쓴 텍스트에서 '민법 제750조', '상법 제401조의2 제2항' 등 조문 인용을 추출하고 법제처 DB에 실제로 존재하는지 교차검증. 법률 답변 신뢰도 체크, 계약서 인용 검증, 법률 문서 교정용. text만 넘기면 자동 파싱 + 병렬 조회.",
+    schema: VerifyCitationsSchema,
+    handler: verifyCitations
   },
 
   // === 메타 도구 (lite 프로필용) ===
@@ -709,6 +720,7 @@ const V3_EXPOSED = new Set([
   "get_annexes",
   "search_decisions", "get_decision_text",
   "discover_tools", "execute_tool",
+  "verify_citations",  // v3.5: LLM 환각 방지 인용 검증 (killer feature)
 ])
 
 // 이름 기반 O(1) 조회용 Map

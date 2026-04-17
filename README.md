@@ -1,6 +1,6 @@
 # Korean Law MCP
 
-**법제처 41개 API를 15개 도구로.** 법령, 판례, 행정규칙, 자치법규, 조약, 해석례를 AI 어시스턴트나 터미널에서 바로 사용.
+**법제처 41개 API를 16개 도구로.** 법령, 판례, 행정규칙, 자치법규, 조약, 해석례 + **LLM 환각 방지 인용 검증**을 AI 어시스턴트나 터미널에서 바로 사용.
 
 [![npm version](https://img.shields.io/npm/v/korean-law-mcp.svg)](https://www.npmjs.com/package/korean-law-mcp)
 [![MCP 1.27](https://img.shields.io/badge/MCP-1.27-blue)](https://modelcontextprotocol.io)
@@ -14,7 +14,26 @@
 
 ---
 
-## v3.2.0 — 이제 이런 것도 됩니다
+## v3.5.0 — AI 법률 답변의 환각을 잡아내다
+
+**LLM이 지어낸 가짜 조문을 실시간으로 탐지.** 법제처 공식 DB로 모든 인용을 교차검증.
+
+```
+"민법 제750조에 따라 불법행위 손해배상을 청구하고,
+ 상법 제401조의2 제7항 및 제999조에 따라 이사의 책임을 물을 수 있습니다"
+```
+
+→ `verify_citations` 한 번으로:
+
+- ✓ 민법 제750조(불법행위의 내용) 실존
+- ✗ 상법 제401조의2 — 제7항 없음 (최대 제3항)
+- ✗ 상법 제999조 — 해당 조문 없음 (존재 범위: 제1조~제637조)
+
+**ChatGPT·Claude가 쓴 법률 답변을 그대로 믿지 마세요.** 법률 AI 서비스, 로펌, 학생, 계약서 검토에서 신뢰도 체크 필수.
+
+---
+
+## v3.2.0+ — 자연어로 복합 분석
 
 사용법은 똑같습니다. **그냥 자연어로 물어보세요.** AI가 질문을 알아듣고, 필요한 분석을 자동으로 추가해줍니다.
 
@@ -81,7 +100,15 @@
 > 모든 결과 끝에 **"이어서 할 수 있는 조회"**가 제안됩니다. 복사해서 바로 이어가세요.
 
 <details>
-<summary>v3.2.1~v3.4.0 변경 이력</summary>
+<summary>v3.2.1~v3.5.0 변경 이력</summary>
+
+**v3.5.0** — Killer feature: `verify_citations` 인용 검증 + Critical 핫픽스 + 보안 강화
+
+- **`verify_citations`** 신규 — LLM 환각 방지. 사용자 텍스트에서 조문 인용 정규식 추출 + 직전 30자 lookback으로 법령명 역추적 + `search_law`/`get_law_text` 병렬로 실존 검증. 결과: ✓(실존) / ✗(없음, 존재 범위 제시) / ⚠(법령명 불명확)
+- **Critical 핫픽스** — v3.4.0 `full` 파라미터가 12개 도메인(tax_tribunal, customs, ftc, pipc, nlrc, acr, treaty, interpretation 등)에서 스키마에 필드가 없어 묵묵히 무시되던 문제 수정. `unified-decisions.ts`가 하위 핸들러 응답을 받은 뒤 `compactLongSections()` 후처리로 계단식 축약 일괄 적용
+- **보안 High 2건** — `fetch-with-retry.ts` 타임아웃/네트워크 에러에 API 키 포함 URL이 로그로 유출되던 문제 → `maskSensitiveUrl()`로 `OC=***` 마스킹. `trust proxy true` → `TRUST_PROXY` 환경변수(기본 `1`), X-Forwarded-For 스푸핑 rate limit 우회 차단
+- **품질 3건** — `decision-compact.ts` 날짜 정규식 경계 가드, TAIL 경계 `". "` 오탐 제거, `stripRepeatedSummary` 종료점 정확 탐지
+- **UX** — 체인 8개 description 구체화(LLM이 체인 선택 가능), 검색 결과 "💡 다음: get_law_text(...)" 힌트, `search_law` 약칭/오타 확장 자동 재시도, `query-router` 패턴 5개 추가, `discover_tools` 별칭 매칭 27개
 
 **v3.4.0** — 판례 응답 토큰 평균 74% 감축 + `get_decision_text`에 `full` 파라미터 추가
 

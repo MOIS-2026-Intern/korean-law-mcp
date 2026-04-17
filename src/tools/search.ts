@@ -8,6 +8,7 @@ import type { LawApiClient } from "../lib/api-client.js"
 import { lawCache } from "../lib/cache.js"
 import { truncateResponse } from "../lib/schemas.js"
 import { formatToolError, noResultHint } from "../lib/errors.js"
+import { expandLawQuery } from "../lib/search-normalizer.js"
 
 export const SearchLawSchema = z.object({
   query: z.string().describe("검색할 법령명 (예: '관세법', 'fta특례법', '화관법')"),
@@ -36,18 +37,35 @@ export async function searchLaw(
       }
     }
 
-    const xmlText = await apiClient.searchLaw(input.query, input.apiKey)
+    let xmlText = await apiClient.searchLaw(input.query, input.apiKey)
+    let doc = new DOMParser().parseFromString(xmlText, "text/xml")
+    let laws = doc.getElementsByTagName("law")
+    let usedQuery = input.query
 
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(xmlText, "text/xml")
-
-    const laws = doc.getElementsByTagName("law")
+    // 0건이면 약칭/오타 확장 쿼리로 자동 재시도
+    if (laws.length === 0) {
+      const { expanded } = expandLawQuery(input.query)
+      for (const expandedQuery of expanded) {
+        if (expandedQuery === input.query) continue
+        xmlText = await apiClient.searchLaw(expandedQuery, input.apiKey)
+        doc = new DOMParser().parseFromString(xmlText, "text/xml")
+        laws = doc.getElementsByTagName("law")
+        if (laws.length > 0) {
+          usedQuery = expandedQuery
+          break
+        }
+      }
+    }
 
     if (laws.length === 0) {
       return noResultHint(input.query, "법령")
     }
 
-    let resultText = `검색 결과 (총 ${laws.length}건):\n\n`
+    let resultText = `검색 결과 (총 ${laws.length}건`
+    if (usedQuery !== input.query) {
+      resultText += `, 확장쿼리: "${usedQuery}"`
+    }
+    resultText += `):\n\n`
 
     const display = Math.min(laws.length, input.display)
 
@@ -67,7 +85,8 @@ export async function searchLaw(
       resultText += `   - 구분: ${lawType}\n\n`
     }
 
-    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
+    // 다음 단계 힌트 (결과 ≥1건일 때만)
+    resultText += `💡 다음: get_law_text(mst="${laws[0].getElementsByTagName("법령일련번호")[0]?.textContent || ""}") 로 조문 전문. 특정 조문만은 jo="제N조" 추가.\n`
 
     // Cache the result (1 hour TTL)
     const truncated = truncateResponse(resultText)

@@ -10,6 +10,7 @@ import type { LawApiClient } from "../lib/api-client.js"
 import type { LooseToolResponse } from "../lib/types.js"
 import { truncateResponse } from "../lib/schemas.js"
 import { formatToolError } from "../lib/errors.js"
+import { compactLongSections } from "../lib/decision-compact.js"
 
 // 기존 handler 재사용 (함수 직접 import)
 import { searchPrecedents, getPrecedentText } from "./precedents.js"
@@ -86,6 +87,12 @@ const SEARCH_HANDLERS: Record<Domain, (api: LawApiClient, args: any) => Promise<
   treaty: searchTreaties,
   english_law: searchEnglishLaw,
 }
+
+/**
+ * 이미 compactBody가 적용된 도메인 — get_decision_text 후처리 축약 skip
+ * (precedents.ts, constitutional-decisions.ts, admin-appeals.ts에서 자체 적용)
+ */
+const ALREADY_COMPACTED: ReadonlySet<Domain> = new Set(["precedent", "constitutional", "admin_appeal"])
 
 // Get handler dispatch table
 const GET_HANDLERS: Record<Domain, (api: LawApiClient, args: any) => Promise<LooseToolResponse>> = {
@@ -209,7 +216,19 @@ export async function getDecisionText(
       }
     }
 
-    return await handler(apiClient, args)
+    const result = await handler(apiClient, args)
+
+    // full=true가 아니고 자체 compact 미적용 도메인이면 후처리 축약
+    // (14개 domain 중 precedent/constitutional/admin_appeal 제외 14개에 적용)
+    if (input.full !== true && !result.isError && !ALREADY_COMPACTED.has(input.domain)) {
+      result.content = result.content.map((c) => {
+        if (!c.text || typeof c.text !== "string") return c
+        const compacted = compactLongSections(c.text)
+        return compacted === c.text ? c : { ...c, text: truncateResponse(compacted) }
+      })
+    }
+
+    return result
   } catch (error) {
     return formatToolError(error as Error, `get_decision_text[${input.domain}]`)
   }

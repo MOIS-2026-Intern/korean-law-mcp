@@ -4,6 +4,16 @@
  * - AbortController for timeout
  */
 
+/**
+ * URL에서 민감 정보(API 키) 마스킹 — 에러 메시지/로그 노출 방지.
+ * 법제처 API는 ?OC=KEY 쿼리 파라미터로 키를 받으므로 해당 값만 *** 처리.
+ * 추가 방어로 일반적인 키 파라미터 이름들도 마스킹.
+ */
+export function maskSensitiveUrl(url: string): string {
+  if (!url) return url
+  return url.replace(/([?&](?:oc|OC|apikey|apiKey|api_key|authKey|auth_key|key)=)[^&]+/g, "$1***")
+}
+
 export interface FetchWithRetryOptions extends RequestInit {
   /** Request timeout in ms (default: 30000) */
   timeout?: number
@@ -66,12 +76,14 @@ export async function fetchWithRetry(
     } catch (error) {
       clearTimeout(timeoutId)
 
-      // Timeout or network error
+      // Timeout or network error — URL에서 API 키 제거 후 에러 생성
       if (error instanceof Error) {
         if (error.name === "AbortError") {
-          lastError = new Error(`Request timeout after ${timeout}ms for ${url}`)
+          lastError = new Error(`Request timeout after ${timeout}ms for ${maskSensitiveUrl(url)}`)
         } else {
-          lastError = error
+          // fetch 네이티브 에러 메시지에도 URL이 포함될 수 있음
+          const masked = maskSensitiveUrl(error.message)
+          lastError = masked !== error.message ? new Error(masked) : error
         }
       }
 

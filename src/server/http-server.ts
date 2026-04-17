@@ -10,14 +10,40 @@ import express from "express"
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js"
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js"
 import { requestContext } from "../lib/session-state.js"
+import { maskSensitiveUrl } from "../lib/fetch-with-retry.js"
 import { VERSION } from "../version.js"
 import { type ToolProfile, parseProfile } from "../lib/tool-profiles.js"
 
+/**
+ * 에러 메시지에서 민감 정보(API 키 포함 URL) scrub.
+ * MCP 응답/서버 로그 양쪽에 적용되어야 함.
+ */
+function scrubError(error: unknown): { message: string; stack?: string } {
+  if (error instanceof Error) {
+    return {
+      message: maskSensitiveUrl(error.message),
+      stack: error.stack ? maskSensitiveUrl(error.stack) : undefined,
+    }
+  }
+  return { message: maskSensitiveUrl(String(error)) }
+}
+
 export async function startHTTPServer(createServer: (profile?: ToolProfile) => Server, port: number) {
   const app = express()
-  // Fly.io proxy 뒤에서 실제 클라이언트 IP 인식 (rate limit per-IP 정상 동작)
-  app.set("trust proxy", true)
-  app.use(express.json({ limit: "100kb" }))
+  // trust proxy: TRUST_PROXY 환경변수로 조정 (기본 '1' = 첫 프록시만 신뢰).
+  // 'true' 또는 'all'은 X-Forwarded-For 스푸핑으로 rate limit 우회 위험.
+  // Fly.io는 edge proxy 1단 → '1' 권장. 다단 프록시면 숫자 증가.
+  const trustProxyRaw = process.env.TRUST_PROXY ?? "1"
+  const trustProxy: number | boolean | string =
+    trustProxyRaw === "true" || trustProxyRaw === "all"
+      ? true
+      : trustProxyRaw === "false"
+      ? false
+      : /^\d+$/.test(trustProxyRaw)
+      ? parseInt(trustProxyRaw, 10)
+      : trustProxyRaw // CIDR/IP 리스트 패스스루
+  app.set("trust proxy", trustProxy)
+  app.use(express.json({ limit: process.env.MCP_BODY_LIMIT || "100kb" }))
 
   // Rate Limiting (RATE_LIMIT_RPM 환경변수, 기본: 60 req/min per IP)
   const rateLimitRpm = parseInt(process.env.RATE_LIMIT_RPM || "60", 10)
@@ -133,7 +159,11 @@ export async function startHTTPServer(createServer: (profile?: ToolProfile) => S
         await transport!.handleRequest(req, res, req.body)
       })
     } catch (error) {
-      console.error("[POST /mcp] Error:", error)
+      const scrubbed = scrubError(error)
+      console.error("[POST /mcp] Error:", scrubbed.message)
+      if (scrubbed.stack && process.env.NODE_ENV !== "production") {
+        console.error(scrubbed.stack)
+      }
       try { transport?.close() } catch { /* ignore */ }
       server?.close().catch(() => {})
       if (!res.headersSent) {

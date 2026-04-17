@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod"
-import { TOOL_CATEGORIES } from "../lib/tool-profiles.js"
+import { TOOL_CATEGORIES, TOOL_ALIASES } from "../lib/tool-profiles.js"
 import { formatToolError } from "../lib/errors.js"
 import type { LawApiClient } from "../lib/api-client.js"
 import type { McpTool, ToolResponse } from "../lib/types.js"
@@ -25,6 +25,42 @@ export const DiscoverToolsSchema = z.object({
   intent: z.string().describe("찾고 싶은 도구의 의도 또는 카테고리 (예: '공정위', '조약', '용어', '헌재')"),
 })
 
+/**
+ * 별칭/자연어 입력을 카테고리명으로 해석.
+ * TOOL_ALIASES에서 매칭되는 경우 해당 카테고리 키 반환, 없으면 undefined.
+ */
+function resolveAliasToCategory(query: string): string | undefined {
+  const q = query.toLowerCase().trim()
+  for (const [category, aliases] of Object.entries(TOOL_ALIASES)) {
+    for (const alias of aliases) {
+      const lowAlias = alias.toLowerCase()
+      if (q === lowAlias || q.includes(lowAlias) || lowAlias.includes(q)) {
+        return category
+      }
+    }
+  }
+  return undefined
+}
+
+/**
+ * 별칭이 특정 도구명(search_xxx, chain_xxx, verify_xxx)을 가리키는지 확인.
+ * 매칭되면 도구 이름 배열 반환, 없으면 undefined.
+ */
+function resolveAliasToTools(query: string): string[] | undefined {
+  const q = query.toLowerCase().trim()
+  for (const aliases of Object.values(TOOL_ALIASES)) {
+    for (const alias of aliases) {
+      if (/^(search_|chain_|verify_|get_|analyze_)/.test(alias)) {
+        // 별칭 배열에 도구 이름이 섞여 있는 경우 (처분기준, 문서검토 등)
+        if (q === alias.toLowerCase() || q.includes(alias.toLowerCase())) {
+          return aliases.filter((a) => /^(search_|chain_|verify_|get_|analyze_)/.test(a))
+        }
+      }
+    }
+  }
+  return undefined
+}
+
 export async function discoverTools(
   _apiClient: LawApiClient,
   input: z.infer<typeof DiscoverToolsSchema>
@@ -32,7 +68,21 @@ export async function discoverTools(
   const query = input.intent.toLowerCase()
   const matches: Array<{ category: string; tools: string[] }> = []
 
+  // 1단계: 별칭 → 카테고리 해석
+  const aliasCategory = resolveAliasToCategory(query)
+
+  // 2단계: 별칭 → 특정 도구 매칭
+  const aliasTools = resolveAliasToTools(query)
+  if (aliasTools && aliasTools.length > 0) {
+    matches.push({ category: `별칭 매칭 (${input.intent})`, tools: aliasTools })
+  }
+
   for (const [category, toolNames] of Object.entries(TOOL_CATEGORIES)) {
+    // 별칭으로 해석된 카테고리는 무조건 포함
+    if (aliasCategory === category) {
+      matches.push({ category, tools: toolNames })
+      continue
+    }
     if (category.includes(query) || query.includes(category)) {
       matches.push({ category, tools: toolNames })
       continue

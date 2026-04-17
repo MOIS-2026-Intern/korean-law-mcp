@@ -1,5 +1,46 @@
 # Changelog
 
+## [3.5.0] - 2026-04-18
+
+### Added (Killer Feature)
+- **`verify_citations`** — LLM 환각 방지 인용 검증 도구 (신규 `src/tools/verify-citations.ts`, ~200줄):
+  - 입력 텍스트에서 `제N조`/`제N조의M`/`제N조 제K항` 형식 인용을 정규식으로 자동 추출
+  - 직전 30자 lookback으로 법령명(`XX법/법률/시행령/시행규칙/규칙/규정/조례`) 역추적
+  - 각 인용에 대해 `search_law` + `get_law_text`(jo) 병렬 호출로 실존·내용·항 번호 교차검증
+  - 결과: ✓(실존) / ✗(없음, 존재 범위 힌트) / ⚠(법령명 불명확/일시 실패)
+  - `V3_EXPOSED`에 노출 — 15개 → 16개 도구. 자연어 라우팅(`인용검증`·`조문실존` 등)에도 연결
+  - 타겟: 법률AI 서비스, 로펌, 법학생, 계약서 검토 — ChatGPT/Claude 답변의 조문 인용 환각 실시간 탐지
+
+### Fixed (Critical)
+- **`get_decision_text` `full` 옵션이 12개 도메인에서 묵묵히 무시되던 문제** — `unified-decisions.ts`는 `args.full`을 전달했지만 tax_tribunal/customs/ftc/pipc/nlrc/acr/appeal_review/acr_special/school/public_corp/public_inst/treaty/english_law/interpretation 핸들러가 스키마에 `full` 필드가 없어 탈락. 이제 `compactLongSections()` 후처리로 12개 도메인에도 축약 적용 (`precedent`/`constitutional`/`admin_appeal`은 자체 적용되므로 skip 리스트)
+- `decision-compact.ts:132` `densifyPrecedentRefs` 날짜 정규식에 경계 가드(`(^|[\s,(\[;/])`) 추가 — 문서 중간 `제2020. 3. 26. 개정` 같은 숫자 오탐 방지
+- `decision-compact.ts:59` `compactBody` TAIL 경계에서 `". "` 제외 + `"한다. "` / `"라. "` 추가 — `"1,234.00 원"`·`"No. 3"` 오탐 방지
+- `decision-compact.ts:166` `stripRepeatedSummary` 종료점 탐지 강화 — 요약 끝 60자 매칭으로 실제 end 계산, 매칭 실패 시 보수적으로 `s.length`만 제거 (요약 뒤 본문 같이 날아가는 사고 방지)
+
+### Fixed (Security)
+- `fetch-with-retry.ts:72` 타임아웃/네트워크 에러 메시지에 API 키 포함 URL이 그대로 노출되던 문제 — `maskSensitiveUrl()` 신규로 `OC=***`·`apiKey=***` 등 마스킹 후 throw
+- `http-server.ts:136` `console.error("[POST /mcp] Error:", error)`에서 원본 에러 로깅 시 키 노출 가능성 — `scrubError()` 경유로 통일
+- `http-server.ts:19` `trust proxy true` → `TRUST_PROXY` 환경변수 (기본 `1`, 첫 프록시만 신뢰). `X-Forwarded-For` 스푸핑으로 rate limit 우회 + 메모리 DoS 위험 차단
+- body limit 환경변수화(`MCP_BODY_LIMIT`, 기본 `100kb`)
+
+### Changed (UX)
+- **체인 도구 8개 description 구체화** — LLM이 `search_law` vs `chain_law_system` 중 선택 가능하게. 각 체인에 구체적 사용 예시(`"관세법 체계"`, `"음식점 영업정지 근거"`, `"서울시 주차 조례 전국 비교"` 등) + 언제 쓰지 말아야 하는지 명시
+- `search_law`/`search_ordinance`/`search_precedents` 결과에 "💡 다음: get_law_text(mst=...)" 형태 **다음 단계 힌트** 추가 — 검색→조회 흐름 자동 유도
+- `search_law` 0건 시 **`expandLawQuery` 자동 재시도** — 약칭(`"근기법"` → `"근로기준법"`)/오타 확장으로 성공률 상승
+- `query-router.ts` **5개 패턴 추가** — `verify_citations`(인용검증 키워드), 법령 비교(`vs`/`와/과 차이`), 시간 필터(`최근 N년 개정`), 민사책임(`손해배상`/`과실비율`), 계약서 검토(`독소조항`)
+- `tool-profiles.ts` **`TOOL_ALIASES`** 맵 추가 — `"조세심판원"` → `search_tax_tribunal_decisions`, `"김영란법"` → 청탁금지법 등 27개 한국어 별칭. `discover_tools`가 별칭 매칭하면 카테고리/도구 즉시 반환
+
+### Why
+- 프로덕션 리뷰(code-reviewer + security-reviewer + UX 갭 분석) 결과 Critical 1 / 보안 High 2 / 품질 High 3 / UX 갭 5 발견
+- v3.4.0 "판례 응답 토큰 74% 감축" 기능이 12개 도메인에서 무효화된 채 배포된 상태 — 즉시 핫픽스
+- 2026년 AI 시대 법령 RAG 차별화 포인트는 **환각 방지**. `verify_citations`가 법제처 공식 API만 가능한 killer 기능
+
+### How to apply
+- `verify_citations` 사용: LLM 답변/계약서/판결문 텍스트를 `text`로 넘기면 자동 인용 추출 + 병렬 검증
+- `full` 옵션은 14개 도메인 전체에서 정상 작동 (이제 `full=true` 보내면 실제로 전문 반환)
+- API 키 로그 유출 방지를 위해 프로덕션 환경은 `TRUST_PROXY=1` 명시 설정 권장 (Fly.io는 기본값으로 충분)
+- 별칭 매칭은 `discover_tools(intent="조세심판원")` 같은 자연어 입력에서 자동 적용
+
 ## [3.4.0] - 2026-04-16
 
 ### Added

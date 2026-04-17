@@ -98,7 +98,11 @@ export async function searchOrdinance(
       }
     }
 
-    let output = `자치법규 검색 결과 (총 ${totalCount}건, ${currentPage}페이지):\n\n`
+    let output = `자치법규 검색 결과 (총 ${totalCount}건, ${currentPage}페이지`
+    if (usedQuery !== normalizedQuery) {
+      output += `, 확장쿼리: "${usedQuery}"`
+    }
+    output += `):\n\n`
 
     for (const ordin of ordinances) {
       output += `[${ordin.자치법규일련번호}] ${ordin.자치법규명}\n`
@@ -111,7 +115,10 @@ export async function searchOrdinance(
       output += `\n`
     }
 
-    // 후속 도구 안내 제거 (LLM이 이미 도구 목록을 알고 있음)
+    // 다음 단계 힌트 — 자치법규 ID로 본문 조회 유도
+    if (ordinances.length > 0 && ordinances[0].자치법규일련번호) {
+      output += `💡 다음: get_ordinance(id="${ordinances[0].자치법규일련번호}") 로 본문 조회. 원하는 규정 없으면 상위 법령 검색도 고려 (예: 휴직·복무·징계 → 지방공무원법).\n`
+    }
 
     return {
       content: [{
