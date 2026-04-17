@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.5.3] - 2026-04-18
+
+### Fixed (verify_citations 실제 검증 후 3개 치명 버그 수정)
+실제 법제처 API로 5건 테스트 → 3건 false negative 발견 → 근본 원인 수정:
+
+- **법제처 searchLaw 부분매칭 오매칭** — "민법" 검색 시 "난민법"이 1위로 리턴되던 문제. 기존 `chains.ts`의 `findLaws`/`scoreLawRelevance`가 이미 이 문제를 해결하고 있었으나 verify_citations가 재사용하지 않고 자체 로직으로 중복 구현했던 것. 공용 모듈 `lib/law-search.ts`로 추출하여 chains/verify 모두 재사용
+- **원숫자(①②③…) 항번호 파싱 실패** — 법제처 API가 `항번호`를 "① "/"② " 형태로 리턴하는데 기존 `parseInt(raw.replace(/[^\d]/g, ""))`가 유니코드 원숫자를 제거하여 NaN. 근로기준법 제60조 제1항이 실존함에도 "최대 제0항" 오판정. `lib/article-parser.ts`에 `parseHangNumber()` 유틸 추가 (원숫자 매핑 + 일반 숫자 fallback)
+- **짧은 법령명("상법") 검색 실패** — 법제처 lawSearch API가 "상법" 검색 시 부분매칭으로 "1980년해직공무원의보상등에관한특별조치법" 등을 먼저 리턴, 실제 "상법"은 결과 34번째. 기본 display=20으로는 못 찾음. `apiClient.searchLaw`에 display 파라미터 추가 + `findLaws`에 `searchDisplay` 옵션 추가, verify_citations에서 `searchDisplay=100`으로 호출
+
+### Changed
+- `lib/law-search.ts` 신규 — `findLaws`, `scoreLawRelevance`, `parseLawXml`, `stripNonLawKeywords`, `NON_LAW_NAME_RE`, `LawInfo` 타입을 `chains.ts`에서 추출하여 공용화
+- `tools/chains.ts` — 중복 정의 제거, `law-search.ts` import
+- `tools/verify-citations.ts` — 자체 법령 검색 로직 제거하고 `findLaws` + `parseHangNumber` 재사용 (중복 구현 금지 원칙)
+- `lib/api-client.ts` — `searchLaw(query, apiKey, display?)` 시그니처 확장 (backward compatible)
+
+### Verified
+실제 법제처 API로 5건 테스트 — 5/5 정확 판정:
+- ✓ 민법 제750조(불법행위) / 근로기준법 제60조 제1항(연차휴가) / 도로교통법 제44조(음주운전) 실존
+- ✗ **상법 제401조의2 제7항 — 제7항 없음(최대 제2항) 환각 정확 탐지**
+- ✗ 형법 제9999조 — 해당 조문 없음(존재 범위: 제1조~제372조)
+
 ## [3.5.2] - 2026-04-18
 
 ### Changed

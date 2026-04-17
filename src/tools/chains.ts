@@ -5,10 +5,16 @@
 import { z } from "zod"
 import { truncateSections } from "../lib/schemas.js"
 import { formatToolError } from "../lib/errors.js"
-import { extractTag } from "../lib/xml-parser.js"
-import { lawCache } from "../lib/cache.js"
 import type { LawApiClient } from "../lib/api-client.js"
 import type { ToolResponse, LooseToolResponse } from "../lib/types.js"
+import {
+  findLaws,
+  stripNonLawKeywords as _unused1,
+  NON_LAW_NAME_RE,
+  type LawInfo,
+} from "../lib/law-search.js"
+// chains.ts 내부 헬퍼가 참조하던 NON_LAW_NAME_RE만 유지 (stripNonLawKeywords는 findLaws 내부에서 사용)
+void _unused1
 import { runScenario, detectScenario, formatSections, formatSuggestedActions } from "./scenarios/index.js"
 import type { ScenarioType, ScenarioContext } from "./scenarios/index.js"
 
@@ -33,13 +39,6 @@ import { searchNlrcDecisions, searchPipcDecisions } from "./committee-decisions.
 // ========================================
 // Types
 // ========================================
-
-interface LawInfo {
-  lawName: string
-  lawId: string
-  mst: string
-  lawType: string
-}
 
 interface CallResult {
   text: string
@@ -66,117 +65,6 @@ async function callTool(
   } catch (e) {
     return { text: `오류: ${e instanceof Error ? e.message : String(e)}`, isError: true }
   }
-}
-
-/** 법령명이 아닌 부가 키워드 제거 (법제처 lawSearch API는 법령명 검색이므로) */
-const NON_LAW_NAME_RE = /\s*(과태료|절차|비용|처벌|기준|허가|신청|부과|근거|위반|방법|요건|조건|처분|수수료|신고|등록|면허|인가|승인|취소|정지|벌칙|벌금|과징금|이행강제금|시정명령|체계|구조|3단|판례|해석|개정|별표|시행령|시행규칙|서식|수입|수출|통관|반환|납부|감면|면제|제한|금지|의무|권리|자격|종류|기간|대상|범위|적용|감경|영향도|영향|분석|위임입법|위임|현황|미이행|미제정|시계열|타임라인|변화|처리|민원|매뉴얼|업무|담당|적합성|상위법|저촉|검증|파급|연쇄|불복|소송|쟁송|FTA|원산지|HS코드|품목분류|관세사)\s*/g
-
-function stripNonLawKeywords(query: string): string {
-  return query.replace(NON_LAW_NAME_RE, " ").trim()
-}
-
-/** XML에서 법령 정보 파싱 */
-function parseLawXml(xmlText: string, max: number): LawInfo[] {
-  const lawRegex = /<law[^>]*>([\s\S]*?)<\/law>/g
-  const results: LawInfo[] = []
-  let match
-  while ((match = lawRegex.exec(xmlText)) !== null && results.length < max) {
-    const content = match[1]
-    const lawName = extractTag(content, "법령명한글")
-    if (!lawName) continue // 빈 법령명 제외
-    results.push({
-      lawName,
-      lawId: extractTag(content, "법령ID"),
-      mst: extractTag(content, "법령일련번호"),
-      lawType: extractTag(content, "법령구분명"),
-    })
-  }
-  return results
-}
-
-async function findLaws(
-  apiClient: LawApiClient,
-  query: string,
-  apiKey?: string,
-  max = 3
-): Promise<LawInfo[]> {
-  // 캐시 확인 (검색어 기반, 1시간 TTL)
-  const cacheKey = `chain-search:${query}:${max}`
-  const cached = lawCache.get<LawInfo[]>(cacheKey)
-  if (cached) return cached.slice(0, max)
-
-  // 1차: 원본 쿼리로 검색
-  let results: LawInfo[] = []
-  try {
-    const xmlText = await apiClient.searchLaw(query, apiKey)
-    results = parseLawXml(xmlText, max)
-  } catch (e) {
-    // 인증/권한 에러는 재시도 무의미 — 즉시 전파
-    if (e instanceof Error && /429|401|403|API 키/.test(e.message)) throw e
-    /* 그 외 에러: 2차 시도로 진행 */
-  }
-
-  // 2차: 결과 없으면 부가 키워드 제거 후 재시도
-  if (results.length === 0) {
-    const stripped = stripNonLawKeywords(query)
-    if (stripped && stripped !== query) {
-      try {
-        const xmlText = await apiClient.searchLaw(stripped, apiKey)
-        results = parseLawXml(xmlText, max)
-      } catch (e) {
-        if (e instanceof Error && /429|401|403|API 키/.test(e.message)) throw e
-      }
-    }
-  }
-
-  // 3차: 법령명 패턴 직접 추출 (strip이 법령명을 파괴하는 경우 대비)
-  // 예: "근로기준법 개정이력" → strip이 "기준" 제거 → "근로 법" 실패 → 패턴으로 "근로기준법" 추출
-  if (results.length === 0) {
-    const lawNameMatch = query.match(/[가-힣]+(법|시행령|시행규칙|규칙|규정|령)(?:\s|$)/)
-    if (lawNameMatch) {
-      const extracted = lawNameMatch[0].trim()
-      try {
-        const xmlText = await apiClient.searchLaw(extracted, apiKey)
-        results = parseLawXml(xmlText, max)
-      } catch (e) {
-        if (e instanceof Error && /429|401|403|API 키/.test(e.message)) throw e
-      }
-    }
-  }
-
-  // 쿼리와 법령명 관련도 기반 정렬 (정확 매칭 > 부분 매칭 > 나머지)
-  if (results.length > 1) {
-    const queryWords = query.replace(NON_LAW_NAME_RE, " ")
-      .trim().split(/\s+/).filter(w => w.length > 0)
-    results.sort((a, b) => {
-      const scoreA = scoreLawRelevance(a.lawName, query, queryWords)
-      const scoreB = scoreLawRelevance(b.lawName, query, queryWords)
-      return scoreB - scoreA
-    })
-  }
-
-  // 캐시 저장 (1시간 TTL)
-  if (results.length > 0) {
-    lawCache.set(cacheKey, results, 60 * 60 * 1000)
-  }
-
-  return results
-}
-
-/** 쿼리 대비 법령명 관련도 점수 (높을수록 관련) */
-function scoreLawRelevance(lawName: string, query: string, queryWords: string[]): number {
-  let score = 0
-  // 정확 매칭: 쿼리가 법령명을 포함
-  if (query.includes(lawName)) score += 100
-  // 법령명이 쿼리를 포함
-  if (lawName.includes(query.replace(/\s+/g, ""))) score += 80
-  // 단어 매칭
-  for (const w of queryWords) {
-    if (lawName.includes(w)) score += 10
-  }
-  // 법률 > 시행령 > 시행규칙 우선순위
-  if (!/시행령|시행규칙/.test(lawName)) score += 5
-  return score
 }
 
 function detectExpansions(query: string): ExpansionType[] {

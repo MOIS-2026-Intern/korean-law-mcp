@@ -61,8 +61,9 @@ export class LawApiClient {
 
   /**
    * 법령 검색
+   * @param display 결과 개수 (기본값 법제처 API default, 짧은 법령명("상법" 등) 정확 매칭 찾으려면 큰 값 권장)
    */
-  async searchLaw(query: string, apiKey?: string): Promise<string> {
+  async searchLaw(query: string, apiKey?: string, display?: number): Promise<string> {
     const normalizedQuery = normalizeLawSearchText(query)
     const aliasResolution = resolveLawAlias(normalizedQuery)
     const finalQuery = aliasResolution.canonical
@@ -73,6 +74,7 @@ export class LawApiClient {
       target: "law",
       query: finalQuery,
     })
+    if (display && display > 0) params.append("display", String(display))
 
     const url = `${LAW_API_BASE}/lawSearch.do?${params.toString()}`
     const response = await fetchWithRetry(url)
