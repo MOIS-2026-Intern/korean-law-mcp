@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.2] - 2026-04-18
+
+### Changed
+- **kordoc 2.3.0 → 2.4.0** — 별표/서식 파싱 엔진 업데이트
+  - 영향: `src/lib/annex-file-parser.ts` (HWP/HWPX/PDF 통합 파서)
+  - API 호환 (minor bump, `parse`/`ParseResult`/`FileType` 시그니처 유지)
+
 ## [3.5.1] - 2026-04-18
 
 ### Removed (Dead Code)
